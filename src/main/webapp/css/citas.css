@@ -1,0 +1,607 @@
+/* ==== RESET Y FUENTE ==== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f8ff;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+/* ==== NAVBAR ==== */
+.navbar {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 30px;
+    height: 80px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 15;
+}
+.logo-container {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+.logo {
+    height: 45px;
+}
+.nav-links {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 2;
+}
+.center-links {
+    display: flex;
+    gap: 40px;
+}
+.center-links a {
+    text-decoration: none;
+    color: #333;
+    font-family: 'Times New Roman', serif;
+    font-size: 16px;
+    transition: color 0.3s;
+    padding: 0 30px;
+}
+.center-links a:hover,
+.center-links a.active-link {
+    color: #2c3342;
+    border-bottom: 2px solid #2c3342;
+    font-weight: 600;
+}
+.buttons {
+    display: flex;
+    gap: 10px;
+}
+.btn {
+    padding: 10px 25px;
+    border-radius: 15px;
+    font-family: 'Times New Roman', serif;
+    font-size: 16px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+}
+.perfil {
+    background-color: #2c3342;
+    color: #ffffff;
+}
+.perfil:hover {
+    background-color: #8A93A3;
+}
+
+/* ==== FORMULARIO DE REGISTRO DE CITA ==== */
+main {
+    padding: 30px;
+}
+
+.form-container {
+    max-width: 600px;
+    margin: 40px auto;
+    background-color: #e6f0fa;
+    border: 2px solid #90caf9;
+    border-radius: 15px;
+    padding: 40px 30px;
+    box-shadow: 0 8px 20px rgba(33, 150, 243, 0.15);
+}
+
+.form-container h2 {
+    text-align: center;
+    color: #1565c0;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 30px;
+}
+
+.cita-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cita-form label {
+    font-weight: 600;
+    color: #2c3342;
+    font-size: 1rem;
+}
+
+.cita-form input[type="text"],
+.cita-form select,
+.cita-form input[type="date"],
+.cita-form input[type="time"] {
+    padding: 10px 15px;
+    border: 1.8px solid #90caf9;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Arial', sans-serif; /* Fuente consistente */
+    transition: border-color 0.3s ease;
+}
+
+.cita-form select:focus,
+.cita-form input[type="date"]:focus,
+.cita-form input[type="time"]:focus,
+.cita-form input[type="text"]:focus {
+    border-color: #1565c0;
+    outline: none;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #2c3342 0%, #5b657a 100%);
+    color: white;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-family: 'Arial', sans-serif; /* Fuente consistente */
+}
+
+.btn-submit:hover {
+    background-color: #1a2433;
+}
+
+/* ==== RESPONSIVE ==== */
+@media (max-width: 600px) {
+    main {
+        padding: 15px;
+    }
+    .form-container {
+        padding: 30px 20px;
+        margin: 30px 15px;
+    }
+    .cita-form label {
+        font-size: 0.9rem;
+    }
+    .cita-form select,
+    .cita-form input[type="text"],
+    .cita-form input[type="date"],
+    .cita-form input[type="time"] {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    .btn-submit {
+        font-size: 1rem;
+    }
+}
+
+/* -- Contenedor Principal (Main) -- */
+.home {
+    position: relative;
+    left: 250px; /* Ajusta esto si tu sidebar tiene otro ancho */
+    width: calc(100% - 250px);
+    padding: 20px;
+    transition: all 0.3s ease;
+    min-height: 100vh;
+    background-color: var(--body-color);
+}
+
+/* Ajuste del main cuando el sidebar está cerrado */
+.sidebar.close ~ .home {
+    left: 78px;
+    width: calc(100% - 78px);
+}
+
+/* -- Encabezado y Acciones -- */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+    gap: 20px; /* Espacio entre los elementos */
+}
+
+.header-content .title {
+    font-size: 2.2em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.actions-group {
+    display: flex;
+    gap: 15px; /* Espacio entre el formulario de búsqueda y el botón agregar */
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* -- Formulario de Búsqueda -- */
+.search-form {
+    display: flex;
+    align-items: center;
+    background-color: var(--search-bg-color); /* Definir en ModoNoche-Sidebar.css */
+    border-radius: 8px;
+    padding: 5px 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.search-input {
+    border: none;
+    background: transparent;
+    padding: 8px;
+    font-size: 1em;
+    color: var(--text-color);
+    outline: none;
+    width: 250px; /* Ancho ajustable */
+}
+
+.search-input::placeholder {
+    color: var(--text-color-light); /* Definir en ModoNoche-Sidebar.css */
+}
+
+.btn-search {
+    background-color: transparent;
+    color: var(--primary-color); /* Color principal, definido en ModoNoche-Sidebar.css */
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-search:hover {
+    background-color: var(--primary-color-light); /* Definir en ModoNoche-Sidebar.css */
+    color: var(--primary-color-dark); /* Definir en ModoNoche-Sidebar.css */
+}
+
+/* -- Botones Generales -- */
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    text-decoration: none; /* Para los <a> que parecen botones */
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--button-text-color); /* Usar una variable para el color del texto del botón */
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.btn-secondary { /* Botones para cancelar, etc. */
+    background-color: var(--secondary-button-bg); /* Definir en ModoNoche-Sidebar.css */
+    color: var(--secondary-button-text); /* Definir en ModoNoche-Sidebar.css */
+    border: 1px solid var(--secondary-button-border); /* Definir en ModoNoche-Sidebar.css */
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-button-hover-bg);
+    border-color: var(--secondary-button-hover-border);
+}
+
+.btn-edit {
+    background-color: var(--edit-color); /* Azul claro */
+    color: white;
+    border: none;
+}
+
+.btn-edit:hover {
+    background-color: var(--edit-color-dark);
+}
+
+.btn-delete {
+    background-color: var(--delete-color); /* Rojo */
+    color: white;
+    border: none;
+}
+
+.btn-delete:hover {
+    background-color: var(--delete-color-dark);
+}
+
+.btn-icon {
+    padding: 8px 12px;
+    border-radius: 5px;
+}
+
+/* -- Tabla de Datos -- */
+.table-container {
+    overflow-x: auto; /* Permite desplazamiento horizontal en pantallas pequeñas */
+    background-color: var(--box-bg-color); /* Fondo para la tabla, si necesitas un card */
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    margin-top: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0; /* Ya dentro de .table-container */
+}
+
+.data-table thead th {
+    background-color: var(--table-header-bg); /* Definir en ModoNoche-Sidebar.css */
+    color: var(--table-header-text); /* Definir en ModoNoche-Sidebar.css */
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap; /* Evita que el texto del encabezado se envuelva */
+}
+
+.data-table tbody td {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+    vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--table-row-hover); /* Definir en ModoNoche-Sidebar.css */
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.no-data {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-color-light);
+    font-style: italic;
+}
+
+.actions-header, .actions-cell {
+    text-align: center;
+    width: 1%; /* Intenta mantenerlas compactas */
+    white-space: nowrap;
+}
+
+.actions-cell .btn {
+    margin: 0 3px;
+}
+
+/* -- Badges de Estado -- */
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: center;
+    color: white; /* Color de texto predeterminado para los badges */
+}
+
+.status-pendiente { background-color: #ffc107; color: #333; } /* Amarillo */
+.status-confirmada { background-color: #28a745; } /* Verde */
+.status-cancelada { background-color: #dc3545; } /* Rojo */
+.status-completada { background-color: #6f42c1; } /* Púrpura */
+
+
+/* -- Modales -- */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+    justify-content: center; /* Centrar contenido */
+    align-items: center; /* Centrar contenido */
+}
+
+.modal.mostrar {
+    display: flex; /* Flexbox para centrar fácilmente */
+}
+
+.modal-content {
+    background-color: var(--modal-bg-color); /* Definir en ModoNoche-Sidebar.css */
+    margin: auto; /* Centrar */
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    width: 90%; /* Ancho responsivo */
+    max-width: 600px; /* Ancho máximo */
+    position: relative;
+    animation-name: animatetop;
+    animation-duration: 0.4s;
+    transform: scale(0.9); /* Inicialmente un poco más pequeño */
+    opacity: 0; /* Inicialmente transparente */
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out; /* Transición suave */
+}
+
+.modal.mostrar .modal-content {
+    transform: scale(1); /* Escala normal al mostrar */
+    opacity: 1; /* Opaco al mostrar */
+}
+
+
+@keyframes animatetop {
+    from { top: -300px; opacity: 0; }
+    to { top: 0; opacity: 1; }
+}
+
+.close-btn {
+    color: var(--text-color-light);
+    font-size: 35px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--primary-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-title {
+    font-size: 1.8em;
+    color: var(--text-color);
+    margin-bottom: 25px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+/* -- Formularios dentro del Modal -- */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Dos columnas por defecto */
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-control {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1em;
+    color: var(--text-color);
+    background-color: var(--input-bg-color); /* Definir en ModoNoche-Sidebar.css */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    outline: none;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.full-width {
+    grid-column: 1 / -1; /* Ocupa todas las columnas */
+}
+
+.form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end; /* Alinear botones a la derecha */
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* -- Mensajes de Alerta -- */
+.alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    color: white;
+    text-align: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.alert.success {
+    background-color: #28a745; /* Verde */
+}
+
+.alert.error {
+    background-color: #dc3545; /* Rojo */
+}
+
+.alert.info {
+    background-color: #17a2b8; /* Azul claro */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* -- Responsive Design -- */
+@media (max-width: 768px) {
+    .home {
+        left: 0;
+        width: 100%;
+        padding: 15px;
+    }
+    .sidebar.close ~ .home {
+        left: 0;
+        width: 100%;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .search-form {
+        width: 100%;
+        padding: 8px;
+    }
+
+    .search-input {
+        width: calc(100% - 70px); /* Ajustar el ancho del input */
+    }
+
+    .btn-primary, .btn-secondary, .btn-edit, .btn-delete, .btn-search {
+        width: 100%;
+        text-align: center;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr; /* Una columna en pantallas pequeñas */
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-content .title {
+        font-size: 1.8em;
+    }
+    .data-table thead th, .data-table tbody td {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+}
