@@ -1,4 +1,4 @@
-package Controlador;
+package Controladores;
 
 import Modelo.UsuarioCitas; // Tu modelo de vista de citas extendida
 import ModeloDAO.UsuarioCitaRecepDAO; // El DAO que opera sobre este modelo
