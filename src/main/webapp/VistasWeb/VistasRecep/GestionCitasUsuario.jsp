@@ -1,5 +1,6 @@
 <%@page import="java.util.List"%>
 <%@page import="Modelo.UsuarioCitas"%>
+<%@page import="Modelo.UsuarioCliente" %> <%-- Importar UsuarioCliente para obtener nombre si es necesario --%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="es">
@@ -35,6 +36,25 @@
         /* Estilos adicionales si deseas ocultar o mostrar secciones */
         .hidden {
             display: none;
+        }
+        /* Estilos para el formulario de edición */
+        .edit-form-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .edit-form-container h3 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #3aafa9;
+            font-weight: 600;
+        }
+        .form-label {
+            font-weight: 500;
         }
     </style>
 </head>
@@ -121,9 +141,10 @@
             </div>
         <% } %>
 
-        <% 
+        <%
             String modo = (String) request.getAttribute("modo");
-            if ("listar".equals(modo) || modo == null) { // Mostrar la tabla de listado por defecto
+            // Mostrar la tabla de listado por defecto o si se especificó "listar" o búsqueda
+            if ("listar".equals(modo) || modo == null || "buscar".equals(modo) || "buscarMedianteID".equals(modo)) {
         %>
             <div class="mb-3">
                 <%-- Formulario de Búsqueda por ID --%>
@@ -152,6 +173,7 @@
                             <th>Fecha</th>
                             <th>Hora</th>
                             <th>Veterinario</th>
+                            <th>Motivo</th> <%-- Agregado --%>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -164,14 +186,31 @@
                         %>
                         <tr>
                             <td><%= cita.getIdCita() %></td>
-                            <td><%= cita.getNombreCliente() %></td>
+                            <td><%= cita.getNombreCliente() %></td> <%-- Asume que UsuarioCitas tiene getNombreCliente() --%>
                             <td><%= cita.getFecha() %></td>
                             <td><%= cita.getHora() %></td>
                             <td><%= cita.getVeterinario() %></td>
+                            <td><%= cita.getMotivo() %></td> <%-- Asegúrate de que este dato venga de la DB --%>
                             <td><%= cita.getEstado() %></td>
                             <td>
-                                <a href="UsuarioCitaRecepServlet?accion=EditarCitaUsuario&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">Editar</a>
-                                <a href="UsuarioCitaRecepServlet?accion=EliminarCitaUsuario&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">Eliminar</a>
+                                <%-- Botones de Acciones --%>
+                                <div class="d-grid gap-2">
+                                    <a href="UsuarioCitaRecepServlet?accion=editar&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">Editar</a>
+                                    <%-- El botón "Ver" puede ser opcional si el editar ya muestra toda la info en readonly --%>
+                                    <%-- <a href="UsuarioCitaRecepServlet?accion=ver&id=<%= cita.getIdCita() %>" class="btn btn-info btn-sm">Ver</a> --%>
+                                    <a href="UsuarioCitaRecepServlet?accion=eliminar&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">Eliminar</a>
+                                </div>
+                                <div class="dropdown mt-2">
+                                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="dropdownEstado<%= cita.getIdCita() %>" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Cambiar Estado
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownEstado<%= cita.getIdCita() %>">
+                                        <li><a class="dropdown-item" href="UsuarioCitaRecepServlet?accion=actualizarEstado&id=<%= cita.getIdCita() %>&estado=Pendiente">Pendiente</a></li>
+                                        <li><a class="dropdown-item" href="UsuarioCitaRecepServlet?accion=actualizarEstado&id=<%= cita.getIdCita() %>&estado=Confirmada">Confirmada</a></li>
+                                        <li><a class="dropdown-item" href="UsuarioCitaRecepServlet?accion=actualizarEstado&id=<%= cita.getIdCita() %>&estado=Completada">Completada</a></li>
+                                        <li><a class="dropdown-item" href="UsuarioCitaRecepServlet?accion=actualizarEstado&id=<%= cita.getIdCita() %>&estado=Cancelada">Cancelada</a></li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                         <%
@@ -179,7 +218,7 @@
                             } else {
                         %>
                         <tr>
-                            <td colspan="7">No hay citas para mostrar.</td>
+                            <td colspan="8">No hay citas para mostrar.</td> <%-- colspan ajustado a 8 --%>
                         </tr>
                         <%
                             }
@@ -187,18 +226,18 @@
                     </tbody>
                 </table>
             </div>
-        <% 
-            } else if ("editar".equals(modo)) {
+        <%
+            } else if ("editar".equals(modo) || "ver".equals(modo)) { // Modo de edición o visualización de una cita
                 UsuarioCitas cita = (UsuarioCitas) request.getAttribute("cita");
-                if (cita == null) { 
+                if (cita == null) {
         %>
                 <div class="alert alert-danger" role="alert">
-                    No se pudo cargar la información de la cita para editar.
+                    No se pudo cargar la información de la cita.
                 </div>
                 <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
-        <%      } else { %>
+        <%     } else { %>
                 <div class="edit-form-container">
-                    <h3>Editar Detalles de Cita</h3>
+                    <h3><%= "editar".equals(modo) ? "Editar Detalles de Cita" : "Ver Detalles de Cita" %></h3>
                     <form action="UsuarioCitaRecepServlet" method="POST">
                         <input type="hidden" name="accion" value="guardarEdicion">
                         <input type="hidden" name="idCita" value="<%= cita.getIdCita() %>">
@@ -213,19 +252,23 @@
                         </div>
                         <div class="mb-3">
                             <label for="fecha" class="form-label">Fecha:</label>
-                            <input type="date" class="form-control" id="fecha" name="fecha" value="<%= cita.getFecha() %>" required>
+                            <input type="date" class="form-control" id="fecha" name="fecha" value="<%= cita.getFecha() %>" <%= "ver".equals(modo) ? "readonly" : "" %> required>
                         </div>
                         <div class="mb-3">
                             <label for="hora" class="form-label">Hora:</label>
-                            <input type="time" class="form-control" id="hora" name="hora" value="<%= cita.getHora() %>" required>
+                            <input type="time" class="form-control" id="hora" name="hora" value="<%= cita.getHora() %>" <%= "ver".equals(modo) ? "readonly" : "" %> required>
                         </div>
                         <div class="mb-3">
                             <label for="veterinario" class="form-label">Veterinario:</label>
-                            <input type="text" class="form-control" id="veterinario" value="<%= cita.getVeterinario() %>" readonly>
-                            </div>
+                            <input type="text" class="form-control" id="veterinario" name="veterinario" value="<%= cita.getVeterinario() %>" <%= "ver".equals(modo) ? "readonly" : "" %> required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="motivo" class="form-label">Motivo:</label>
+                            <textarea class="form-control" id="motivo" name="motivo" rows="3" <%= "ver".equals(modo) ? "readonly" : "" %> required><%= cita.getMotivo() %></textarea>
+                        </div>
                         <div class="mb-3">
                             <label for="estado" class="form-label">Estado:</label>
-                            <select class="form-select" id="estado" name="estado" required>
+                            <select class="form-select" id="estado" name="estado" <%= "ver".equals(modo) ? "disabled" : "" %> required>
                                 <option value="Pendiente" <%= "Pendiente".equals(cita.getEstado()) ? "selected" : "" %>>Pendiente</option>
                                 <option value="Confirmada" <%= "Confirmada".equals(cita.getEstado()) ? "selected" : "" %>>Confirmada</option>
                                 <option value="Completada" <%= "Completada".equals(cita.getEstado()) ? "selected" : "" %>>Completada</option>
@@ -233,12 +276,14 @@
                             </select>
                         </div>
 
+                        <% if ("editar".equals(modo)) { %>
                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                        <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Cancelar y Volver</a>
+                        <% } %>
+                        <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
                     </form>
                 </div>
-        <%      } // Fin de if (cita == null) para editar
-            } // Fin de if "editar"
+        <%     } // Fin de if (cita == null) para editar/ver
+            } // Fin de if "editar" o "ver"
         %>
     </section>
 
