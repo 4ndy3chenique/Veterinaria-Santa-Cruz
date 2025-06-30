@@ -2,29 +2,13 @@ package Modelo;
 
 public class Veterinario {
     private int idVeterinario;
-    private String nombre; // Propiedad 'nombre'
-    private String apellido;
+    private String nombre; // Este es el campo que usaremos para el nombre completo
+    private String apellido; // Puedes mantenerlo si lo necesitas para otras operaciones
     private String numero;
     private String dni;
     private String especialidad;
-    // Agrega aquí otras propiedades si las tienes (ej. contraseña, etc.)
 
-    // Constructor vacío (es una buena práctica para JavaBeans)
-    public Veterinario() {
-    }
-
-    // Constructor con todos los campos (opcional)
-    public Veterinario(int idVeterinario, String nombre, String apellido, String numero, String dni, String especialidad) {
-        this.idVeterinario = idVeterinario;
-        this.nombre = nombre;
-        this.apellido = apellido;
-        this.numero = numero;
-        this.dni = dni;
-        this.especialidad = especialidad;
-    }
-
-    // Getters y Setters para todas las propiedades
-
+    // Getters y Setters
     public int getIdVeterinario() {
         return idVeterinario;
     }
@@ -33,12 +17,10 @@ public class Veterinario {
         this.idVeterinario = idVeterinario;
     }
 
-    // *** ESTE ES EL MÉTODO CRÍTICO QUE DEBE EXISTIR ***
     public String getNombre() {
         return nombre;
     }
 
-    // *** Y ESTE TAMBIÉN ***
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
@@ -74,6 +56,4 @@ public class Veterinario {
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
     }
-
-    // Otros getters/setters si tienes más campos...
 }

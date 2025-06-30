@@ -1,170 +1,166 @@
 package ModeloDAO;
 
-import Modelo.Conexion; // Asegúrate de que esta ruta sea correcta y la clase exista
-import Modelo.UsuarioCitas; // Asegúrate de que esta ruta sea correcta y la clase exista
-
+import Modelo.Conexion;
+import Modelo.Veterinario;
+import Modelo.UsuarioCitas;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Date;
+import java.sql.CallableStatement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger; // Importar para logging
+import java.util.logging.Logger;
 
-/**
- * DAO (Data Access Object) para gestionar las operaciones de la base de datos
- * relacionadas con las citas de los usuarios (UsuarioCitas).
- * Esta clase maneja la inserción, consulta, actualización y eliminación de datos en la tabla de citas.
- */
 public class UsuarioCitasDAO {
-
-    // Configuración del logger para esta clase
+    private Connection con;
+    private PreparedStatement ps;
+    private ResultSet rs;
     private static final Logger LOGGER = Logger.getLogger(UsuarioCitasDAO.class.getName());
 
-    /**
-     * Registra una nueva cita en la base de datos.
-     *
-     * @param cita El objeto UsuarioCitas con toda la información a guardar.
-     * @return true si la cita se registró con éxito, false en caso contrario.
-     */
+    public List<Veterinario> listarVeterinariosParaUsuarioCitas() {
+        List<Veterinario> lista = new ArrayList<>();
+        String sql = "SELECT idVeterinario, V_Nombre, V_Apellido, V_Especialidad FROM veterinario ORDER BY V_Nombre";
+        try {
+            con = Conexion.getConnection();
+            ps = con.prepareStatement(sql);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Veterinario vet = new Veterinario();
+                vet.setIdVeterinario(rs.getInt("idVeterinario"));
+                vet.setNombre(rs.getString("V_Nombre"));
+                vet.setApellido(rs.getString("V_Apellido"));
+                vet.setEspecialidad(rs.getString("V_Especialidad"));
+                lista.add(vet);
+            }
+            LOGGER.info("Se obtuvieron " + lista.size() + " veterinarios del DAO.");
+        } catch (SQLException e) {
+            LOGGER.severe("Error SQL al listar veterinarios: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Asegúrate de cerrar los recursos en el orden inverso al que se abrieron
+            try {
+                if (rs != null) rs.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar ResultSet en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
+            }
+            try {
+                if (ps != null) ps.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar PreparedStatement en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
+            }
+            try {
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar Connection en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
+            }
+        }
+        return lista;
+    }
+
     public boolean registrarCita(UsuarioCitas cita) {
-        // Es una buena práctica especificar las columnas en el INSERT.
-        String sql = "INSERT INTO UsuarioCitas (nombre_cliente, fecha, hora, veterinario, estado) VALUES (?, ?, ?, ?, ?)";
+        CallableStatement cs = null;
+        // Ajusta esta cadena SQL para que coincida EXACTAMENTE con los parámetros de tu Stored Procedure.
+        // Basado en tu ejemplo de `CALL sp_registrar_cita(1, 1, '2025-07-15', '10:00:00', 'Laura Gómez', 'Revisión anual', 'Pendiente');`
+        // tu SP espera 7 parámetros. Si tu objeto UsuarioCitas no tiene 'nombreCliente', tendrás que obtenerlo.
+        // POR AHORA, asumo que tienes 'nombreCliente' en tu objeto UsuarioCitas o lo obtendrás de algún lugar.
+        // Si tu SP tiene solo 6 parámetros (sin 'nombreCliente'), usa "{CALL sp_registrar_cita(?, ?, ?, ?, ?, ?)}".
+        String sql = "{CALL sp_registrar_cita(?, ?, ?, ?, ?, ?, ?)}"; // 7 placeholders para ID_Cliente, ID_Veterinario, Fecha, Hora, Nombre_Cliente, Motivo, Estado
         
-        // Usamos try-with-resources para asegurar que la conexión y el PreparedStatement se cierren automáticamente.
-        try (Connection conn = Conexion.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, cita.getNombreCliente());
-            ps.setDate(2, cita.getFecha());       // Usamos setDate para el tipo java.sql.Date
-            ps.setTime(3, cita.getHora());        // Usamos setTime para el tipo java.sql.Time
-            ps.setString(4, cita.getVeterinario());
-            ps.setString(5, cita.getEstado());
-
-            int filasAfectadas = ps.executeUpdate();
+        try {
+            con = Conexion.getConnection();
+            cs = con.prepareCall(sql);
             
-            LOGGER.log(Level.INFO, "Cita registrada: {0} filas afectadas.", filasAfectadas);
-            return filasAfectadas > 0;
+            cs.setInt(1, cita.getIdUsuario());
+            cs.setInt(2, cita.getIdVeterinario());
+            cs.setDate(3, cita.getFecha());
+            cs.setTime(4, cita.getHora());
+            
+            // Si el nombre del cliente se necesita, asegúrate de que esté en el objeto 'cita'.
+            // Por ejemplo, si tienes un método getNombreCliente() en UsuarioCitas:
+            // cs.setString(5, cita.getNombreCliente());
+            // Si no lo tienes en UsuarioCitas y el SP lo necesita, deberías pasarlo desde el Servlet.
+            // Para la demostración, usaré un valor fijo o ajusta según tu necesidad.
+            // Si el nombre del cliente NO es un parámetro en tu SP, quita esta línea y ajusta el SQL a 6 '?'
+            cs.setString(5, "NombreClienteTemporal"); // **Ajusta esto** Si tu SP necesita el nombre del cliente y no lo tienes en 'cita'. O quita si tu SP es de 6 parámetros.
+            
+            cs.setString(6, cita.getMotivo());
+            cs.setString(7, cita.getEstado());
 
+            int filasAfectadas = cs.executeUpdate();
+            if (filasAfectadas > 0) {
+                LOGGER.info("Cita registrada exitosamente en la BD mediante SP para cliente ID: " + cita.getIdUsuario());
+                return true;
+            } else {
+                LOGGER.warning("No se insertó la cita en la BD mediante SP. Filas afectadas: " + filasAfectadas);
+                return false;
+            }
         } catch (SQLException e) {
-            // Loguear el error para depuración en el servidor
-            LOGGER.log(Level.SEVERE, "Error al registrar la cita: " + e.getMessage(), e);
+            LOGGER.severe("Error SQL al registrar cita mediante SP: " + e.getMessage());
+            e.printStackTrace();
             return false;
-        }
-    }
-
-    /**
-     * Obtiene una lista de todas las citas pertenecientes a un cliente específico.
-     * (Este método no es usado por el Servlet actual, pero se mantiene para funcionalidad futura).
-     *
-     * @param nombreCliente El nombre del cliente cuyas citas se quieren listar.
-     * @return Una lista de objetos UsuarioCitas. La lista estará vacía si no se encuentran citas o si ocurre un error.
-     */
-    public List<UsuarioCitas> listarCitasPorUsuario(String nombreCliente) {
-        List<UsuarioCitas> lista = new ArrayList<>();
-        String sql = "SELECT id_cita, nombre_cliente, fecha, hora, veterinario, estado FROM UsuarioCitas WHERE nombre_cliente = ? ORDER BY fecha, hora";
-        
-        try (Connection conn = Conexion.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            
-            ps.setString(1, nombreCliente);
-            
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    UsuarioCitas cita = new UsuarioCitas();
-                    cita.setIdCita(rs.getInt("id_cita"));
-                    cita.setNombreCliente(rs.getString("nombre_cliente"));
-                    cita.setFecha(rs.getDate("fecha"));
-                    cita.setHora(rs.getTime("hora"));
-                    cita.setVeterinario(rs.getString("veterinario"));
-                    cita.setEstado(rs.getString("estado"));
-                    lista.add(cita);
-                }
+        } finally {
+            try {
+                if (cs != null) cs.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar CallableStatement en registrarCita (SP): " + e.getMessage());
             }
-            LOGGER.log(Level.INFO, "Citas listadas por usuario '{0}': {1} encontradas.", new Object[]{nombreCliente, lista.size()});
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al listar citas por usuario: " + e.getMessage(), e);
+            try {
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar Connection en registrarCita (SP): " + e.getMessage());
+            }
         }
-        return lista;
     }
 
-    /**
-     * Obtiene una lista de TODAS las citas registradas en el sistema.
-     * Es el método principal usado por GestionCitasServlet.
-     *
-     * @return Una lista completa de objetos UsuarioCitas, ordenada por fecha descendente y luego por hora.
-     * La lista estará vacía si no hay citas o si ocurre un error.
-     */
-    public List<UsuarioCitas> listarTodasLasCitas() {
-        List<UsuarioCitas> lista = new ArrayList<>();
-        // Ordenamos por fecha descendente (más recientes primero) y luego por hora ascendente.
-        String sql = "SELECT id_cita, nombre_cliente, fecha, hora, veterinario, estado FROM UsuarioCitas ORDER BY fecha DESC, hora ASC";
-        
-        try (Connection conn = Conexion.getConnection(); // Obtiene la conexión a la DB
-             PreparedStatement ps = conn.prepareStatement(sql); // Prepara la consulta SQL
-             ResultSet rs = ps.executeQuery()) { // Ejecuta la consulta y obtiene el ResultSet
-
-            while (rs.next()) { // Itera sobre cada fila del ResultSet
-                UsuarioCitas cita = new UsuarioCitas(); // Crea un nuevo objeto Cita
-                // Mapea las columnas del ResultSet a las propiedades del objeto Cita
-                cita.setIdCita(rs.getInt("id_cita"));
-                cita.setNombreCliente(rs.getString("nombre_cliente"));
-                cita.setFecha(rs.getDate("fecha"));
-                cita.setHora(rs.getTime("hora"));
-                cita.setVeterinario(rs.getString("veterinario"));
+    // Nuevo método para listar citas por usuario (para historialdecitas.jsp)
+    public List<UsuarioCitas> listarCitasPorUsuario(int idUsuario) {
+        List<UsuarioCitas> listaCitas = new ArrayList<>();
+        // Ajusta esta consulta SQL para seleccionar las citas del usuario.
+        // Asegúrate de que las columnas coincidan con tu tabla 'Citas'.
+        String sql = "SELECT idCita, idUsuario, idVeterinario, fechaCita, horaCita, motivo, estado FROM Citas WHERE idUsuario = ?"; 
+        try {
+            con = Conexion.getConnection();
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, idUsuario); // Establece el ID del usuario como parámetro
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                UsuarioCitas cita = new UsuarioCitas();
+                cita.setIdCita(rs.getInt("idCita"));
+                cita.setIdUsuario(rs.getInt("idUsuario"));
+                cita.setIdVeterinario(rs.getInt("idVeterinario"));
+                cita.setFecha(rs.getDate("fechaCita"));
+                cita.setHora(rs.getTime("horaCita"));
+                cita.setMotivo(rs.getString("motivo"));
                 cita.setEstado(rs.getString("estado"));
-                lista.add(cita); // Añade la cita a la lista
+                // Si necesitas el nombre del veterinario o el cliente en el objeto cita,
+                // deberías hacer un JOIN en la consulta SQL o cargar esos datos por separado.
+                listaCitas.add(cita);
             }
-            LOGGER.log(Level.INFO, "Todas las citas listadas: {0} encontradas.", lista.size());
+            LOGGER.info("Se obtuvieron " + listaCitas.size() + " citas para el usuario con ID: " + idUsuario);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al listar todas las citas: " + e.getMessage(), e);
-            // Podrías relanzar la excepción o devolver una lista vacía y manejarlo en el servlet
+            LOGGER.severe("Error SQL al listar citas por usuario: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Asegúrate de cerrar los recursos en el orden inverso al que se abrieron
+            try {
+                if (rs != null) rs.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar ResultSet en listarCitasPorUsuario: " + e.getMessage());
+            }
+            try {
+                if (ps != null) ps.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar PreparedStatement en listarCitasPorUsuario: " + e.getMessage());
+            }
+            try {
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                LOGGER.severe("Error al cerrar Connection en listarCitasPorUsuario: " + e.getMessage());
+            }
         }
-        return lista;
+        return listaCitas;
     }
     
-    /**
-     * Actualiza el estado de una cita específica.
-     *
-     * @param idCita El ID de la cita a actualizar.
-     * @param nuevoEstado El nuevo estado de la cita.
-     * @return true si la actualización fue exitosa, false en caso contrario.
-     */
-    public boolean actualizarEstadoCita(int idCita, String nuevoEstado) {
-        String sql = "UPDATE UsuarioCitas SET estado = ? WHERE id_cita = ?";
-        try (Connection conn = Conexion.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, nuevoEstado);
-            ps.setInt(2, idCita);
-            int filasAfectadas = ps.executeUpdate();
-            LOGGER.log(Level.INFO, "Actualizando cita ID {0} a estado '{1}': {2} filas afectadas.", new Object[]{idCita, nuevoEstado, filasAfectadas});
-            return filasAfectadas > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al actualizar el estado de la cita ID " + idCita + ": " + e.getMessage(), e);
-            return false;
-        }
-    }
-
-    /**
-     * Elimina una cita de la base de datos por su ID.
-     *
-     * @param idCita El ID de la cita a eliminar.
-     * @return true si la eliminación fue exitosa, false en caso contrario.
-     */
-    public boolean eliminarCita(int idCita) {
-        String sql = "DELETE FROM UsuarioCitas WHERE id_cita = ?";
-        try (Connection conn = Conexion.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, idCita);
-            int filasAfectadas = ps.executeUpdate();
-            LOGGER.log(Level.INFO, "Eliminando cita ID {0}: {1} filas afectadas.", new Object[]{idCita, filasAfectadas});
-            return filasAfectadas > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al eliminar la cita ID " + idCita + ": " + e.getMessage(), e);
-            return false;
-        }
-    }
+    
 }

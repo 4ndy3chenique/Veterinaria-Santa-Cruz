@@ -1,14 +1,22 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.LocalTime" %>
 <%@ page import="Modelo.UsuarioCliente" %>
+<%@ page import="java.util.List" %>
+<%@ page import="Modelo.Veterinario" %>
+<%@ page import="Modelo.UsuarioCitas" %> 
+
 <%
-    // Obtener el objeto usuario de la sesiÃ³n
+    // Obtener el objeto usuario de la sesión
     UsuarioCliente usuarioObj = (UsuarioCliente) session.getAttribute("usuario");
-    String usuario = usuarioObj != null ? usuarioObj.getNombre() : ""; // Cambia getNombre() si tu getter es otro
+    String usuario = (usuarioObj != null && usuarioObj.getNombre() != null) ? usuarioObj.getNombre() : "";
     String mensaje = request.getParameter("mensaje");
+
+    // Fecha y hora actuales para validación en el cliente y valores mínimos
     LocalDate fechaActual = LocalDate.now();
     LocalTime horaActual = LocalTime.now();
+
+    // Obtener la lista de veterinarios del request (pasada por el servlet)
+    List<Modelo.Veterinario> listaVeterinarios = (List<Modelo.Veterinario>) request.getAttribute("listaVeterinarios");
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -47,7 +55,7 @@
         }
         .registro-cita h3 { text-align: center; margin-bottom: 20px; font-weight: 600; font-size: 1.8rem; color: #3aafa9; }
         .registro-cita label { display: block; margin: 12px 0 6px; font-weight: 500; }
-        .registro-cita input, .registro-cita select {
+        .registro-cita input, .registro-cita select, .registro-cita textarea { /* Añadido textarea aquí */
             width: 100%; padding: 10px; border: 1px solid #999; border-radius: 4px; font-size: 1rem; box-sizing: border-box;
         }
         .registro-cita .button-group { display: flex; gap: 15px; margin-top: 20px; }
@@ -67,7 +75,6 @@
     </style>
 </head>
 <body>
-<!-- Barra de NavegaciÃ³n -->
 <nav class="navbar">
     <div class="logo-container">
         <a href="${pageContext.request.contextPath}/index.jsp">
@@ -87,19 +94,49 @@
     </div>
 </nav>
 
-<!-- Mensajes de Ã©xito o error -->
-<% if ("registrado".equals(mensaje)) { %>
-    <div class="alert-success">Â¡Cita registrada correctamente!</div>
-<% } else if ("error".equals(mensaje)) { %>
-    <div class="alert-error">Error al registrar la cita. Por favor, intÃ©ntalo de nuevo.</div>
-<% } %>
+<%
+    if (mensaje != null) {
+        if ("registrado".equals(mensaje)) {
+%>
+            <div class="alert-success">¡Cita registrada correctamente!</div>
+<%
+        } else if ("error_registro".equals(mensaje)) {
+%>
+            <div class="alert-error">Error al registrar la cita. Por favor, inténtalo de nuevo.</div>
+<%
+        } else if ("error_veterinario_no_encontrado".equals(mensaje)) {
+%>
+            <div class="alert-error">Error: No se pudo encontrar el veterinario seleccionado. Por favor, intente de nuevo.</div>
+<%
+        } else if ("formato_invalido".equals(mensaje)) {
+%>
+            <div class="alert-error">Error: Formato de fecha u hora inválido.</div>
+<%
+        } else if ("error_formato_numero".equals(mensaje)) {
+%>
+            <div class="alert-error">Error: Datos numéricos inválidos (ID de cliente o veterinario).</div>
+<%
+        } else if ("error_inesperado".equals(mensaje)) {
+%>
+            <div class="alert-error">Se produjo un error inesperado. Por favor, intente de nuevo más tarde.</div>
+<%
+        } else if ("fecha_hora_pasada".equals(mensaje)) {
+%>
+            <div class="alert-error">No puedes seleccionar una fecha u hora pasada para la cita.</div>
+<%
+        }
+    }
+%>
 
-<!-- Formulario para registrar cita -->
 <section class="registro-cita">
     <h3>Registrar Nueva Cita</h3>
     <form id="formCita" action="${pageContext.request.contextPath}/UsuarioCitasServlet" method="post" onsubmit="return validarFechaHora()">
+        <input type="hidden" name="accion" value="registrar">
+        <input type="hidden" name="idCliente" value="<%= usuarioObj != null ? usuarioObj.getIdUsuario() : "" %>">
+
         <label for="nombreCliente">Cliente:</label>
-        <input type="text" id="nombreCliente" name="nombreCliente" value="<%= usuario %>" required readonly />
+        <input type="text" id="nombreCliente" name="nombreClienteDisplay" value="<%= usuario %>" required readonly />
+        <small class="form-text text-muted">Este es tu nombre de usuario. El ID se envía automáticamente.</small>
 
         <label for="fecha">Fecha:</label>
         <input type="date" id="fecha" name="fecha" min="<%= fechaActual %>" required />
@@ -109,22 +146,37 @@
         <input type="time" id="hora" name="hora" required />
         <div id="errorHora" class="error-message">No puedes seleccionar una hora pasada para hoy.</div>
 
-        <label for="veterinario">Veterinario:</label>
-        <select id="veterinario" name="veterinario" required>
-            <option value="Dra. Laura GÃ³mez ">Dra. Laura GÃ³mez </option>
-            <option value="Dr. Miguel Santos ">Dr. Miguel Santos  </option>
-            <option value="Dra. Carla RamÃ­rez ">Dra. Carla RamÃ­rez  </option>
-            <option value="Dr. Lucas Robinson ">Dr. Lucas Robinson  </option>
+        <label for="idVeterinario">Veterinario:</label>
+        <select name="idVeterinario" id="idVeterinario" required>
+            <option value="">-- Seleccione un veterinario --</option>
+            <%
+                if (listaVeterinarios == null) {
+                    out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios es NULL</option>");
+                } else if (listaVeterinarios.isEmpty()) {
+                    out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios está VACÍA</option>");
+                } else {
+                    out.println("<option value=\"\" disabled>DEBUG JSP: " + listaVeterinarios.size() + " veterinarios encontrados</option>");
+                }
+            %>
+            <%
+                if (listaVeterinarios != null && !listaVeterinarios.isEmpty()) {
+                    for (Modelo.Veterinario vet : listaVeterinarios) {
+            %>
+                        <option value="<%= vet.getIdVeterinario()%>">
+                            Dr(a). <%= vet.getNombre()%> <%= vet.getApellido()%> - <%= vet.getEspecialidad()%>
+                        </option>
+            <%
+                    }
+                } else {
+            %>
+                    <option value="" disabled>No se han encontrado veterinarios disponibles.</option>
+            <%
+                }
+            %>
         </select>
+        <label for="motivo">Motivo de la Cita:</label>
+        <textarea id="motivo" name="motivo" rows="3" required></textarea>
 
-        <label for="estado">Motivo:</label>
-        <select id="estado" name="estado" required>
-            <option value="Medicina Interna">Medicina Interna</option>
-            <option value="CirugÃ­a">CirugÃ­a</option>
-            <option value="DermatologÃ­a">DermatologÃ­a</option>
-            <option value="DesparasitaciÃ³n">DesparasitaciÃ³n</option>
-            <option value="Chequeo General">Chequeo General</option>
-        </select>
         <div class="button-group">
             <button type="submit">Registrar Cita</button>
             <button type="button" onclick="window.location.href='${pageContext.request.contextPath}/VistasWeb/VistasCliente/servicios.jsp'">Salir</button>
@@ -132,13 +184,12 @@
     </form>
 </section>
 
-<!-- Sidebar perfil -->
 <div id="sidebarPerfil" class="sidebar-perfil" role="dialog" aria-modal="true" aria-labelledby="perfilTitle">
     <h2 id="perfilTitle">Mi Perfil</h2>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/MiPerfil.jsp">Mi perfil</a>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/historialdecompras.jsp">Historial de compras/servicios</a>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/historialdecitas.jsp">Citas agendadas</a>
-    <a href="${pageContext.request.contextPath}/LogoutServlet">Cerrar sesiÃ³n</a>
+    <a href="${pageContext.request.contextPath}/LogoutServlet">Cerrar sesión</a>
 </div>
 <div id="sidebarOverlay"></div>
 
@@ -153,26 +204,40 @@
         this.classList.remove('active');
     });
 
-    // ValidaciÃ³n de fecha y hora
+    // Validación de fecha y hora
     function validarFechaHora() {
         const fechaInput = document.getElementById('fecha');
         const horaInput = document.getElementById('hora');
         const errorFecha = document.getElementById('errorFecha');
         const errorHora = document.getElementById('errorHora');
+
         const hoy = new Date();
+        const hoySoloFecha = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const fechaSeleccionada = new Date(fechaInput.value);
+        const fechaSeleccionadaSoloFecha = new Date(fechaSeleccionada.getFullYear(), fechaSeleccionada.getMonth(), fechaSeleccionada.getDate());
+
         errorFecha.style.display = 'none';
         errorHora.style.display = 'none';
-        if (fechaSeleccionada < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) {
+
+        if (fechaSeleccionadaSoloFecha < hoySoloFecha) {
             errorFecha.style.display = 'block';
             fechaInput.focus();
             return false;
         }
-        if (fechaSeleccionada.getDate() === hoy.getDate() && fechaSeleccionada.getMonth() === hoy.getMonth() && fechaSeleccionada.getFullYear() === hoy.getFullYear()) {
-            const horaSeleccionada = horaInput.value.split(':');
-            const horaActual = hoy.getHours();
-            const minutoActual = hoy.getMinutes();
-            if (parseInt(horaSeleccionada[0]) < horaActual || (parseInt(horaSeleccionada[0]) === horaActual && parseInt(horaSeleccionada[1]) < minutoActual)) {
+
+        if (fechaSeleccionadaSoloFecha.getTime() === hoySoloFecha.getTime()) {
+            const horaSeleccionadaPartes = horaInput.value.split(':');
+            const horaSeleccionadaObj = new Date();
+            horaSeleccionadaObj.setHours(parseInt(horaSeleccionadaPartes[0]));
+            horaSeleccionadaObj.setMinutes(parseInt(horaSeleccionadaPartes[1]));
+            horaSeleccionadaObj.setSeconds(0);
+            horaSeleccionadaObj.setMilliseconds(0);
+
+            const horaActualObj = new Date();
+            horaActualObj.setSeconds(0);
+            horaActualObj.setMilliseconds(0);
+
+            if (horaSeleccionadaObj < horaActualObj) {
                 errorHora.style.display = 'block';
                 horaInput.focus();
                 return false;
@@ -180,6 +245,15 @@
         }
         return true;
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const minDate = `${year}-${month}-${day}`;
+        document.getElementById('fecha').setAttribute('min', minDate);
+    });
 </script>
 </body>
 </html>

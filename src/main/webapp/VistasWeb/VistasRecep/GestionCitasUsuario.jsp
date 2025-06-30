@@ -1,152 +1,249 @@
-<%-- 
-    Document   : GestionCitasUsuario
-    Created on : 27 jun 2025, 10:41:00
-    Author     : PROPIETARIO
---%>
-
-<%-- /VistasWeb/VistasRecep/GestionCitasUsuario.jsp --%>
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-
-<%-- 
-    ********************************************************************************
-    *** ¡¡CONFIGURACIÓN DE JSTL CRÍTICA PARA TOMCAT 10 (JAKARTA EE)!! ***
-    
-    Como tu servidor es Tomcat 10, DEBES usar las URIs de JSTL para Jakarta EE 9+.
-    Estas URIs son las correctas y son necesarias para que las etiquetas JSTL
-    (como <c:forEach>, <c:if>, <fmt:formatDate>) sean reconocidas y procesadas.
---%>
-<%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<%@ taglib uri="jakarta.tags.fmt" prefix="fmt" %>
-
-<%--
-    Si, por alguna razón, las líneas de arriba NO funcionaran con Tomcat 10
-    (lo cual sería muy inusual si tienes los JARs correctos), entonces podrías
-    intentar con las URIs antiguas de Java EE 8, pero con Tomcat 10 no deberían ser necesarias:
-    <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
-    <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
---%>
-
+<%@page import="java.util.List"%>
+<%@page import="Modelo.UsuarioCitas"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Gestión de Citas - Recepción</title>
-    
-    <%-- Enlace a Bootstrap CSS (versión 5.3.3) para un diseño moderno y responsive --%>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" 
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Citas de Usuarios - VeterinariaSantaCruz</title>
+    <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<%= request.getContextPath()%>/css/ModoNoche-Sidebar.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Estilos CSS personalizados para mejorar la apariencia */
-        .container {
-            margin-top: 20px;
-            padding-bottom: 50px; /* Asegura espacio al final de la página */
+        body {
+            padding-left: 78px; /* Ancho por defecto del sidebar minimizado */
+            transition: all 0.2s ease;
         }
-        .badge {
-            font-size: 0.85em; /* Tamaño de fuente para los badges de estado */
-            padding: 0.4em 0.6em; /* Padding para los badges */
-            min-width: 80px; /* Ancho mínimo para que todos los badges se vean uniformes */
-            display: inline-block; /* Para que min-width y text-align funcionen */
-            text-align: center;
+        .sidebar.close ~ body {
+             padding-left: 250px; /* Ancho del sidebar expandido */
+        }
+        .home {
+            position: relative;
+            left: 78px;
+            width: calc(100% - 78px);
+            transition: all 0.2s ease;
+            padding: 20px; /* Espaciado dentro del contenido principal */
+        }
+        .sidebar.close ~ .home {
+            left: 250px;
+            width: calc(100% - 250px);
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        /* Estilos adicionales si deseas ocultar o mostrar secciones */
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1 class="my-4 text-center">Historial Completo de Citas</h1>
-        <p class="lead text-muted text-center">Aquí se muestran todas las citas registradas en el sistema.</p>
-        <hr>
-
-        <%-- Sección para mostrar mensajes de éxito o error enviados desde el Servlet --%>
-        <%-- Usamos 'requestScope.' para acceder explícitamente a los atributos del objeto request --%>
-        <c:if test="${not empty requestScope.mensajeExito}">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                ${requestScope.mensajeExito}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <%-- INICIO DEL CÓDIGO DEL MENÚ LATERAL (SIDEBAR) --%>
+    <nav class="sidebar">
+        <header>
+            <div class="image-text">
+                <span class="image">
+                    <img id="logoAdmin" src="<%= request.getContextPath()%>/Recursos/Logo.png" alt="Logo de Veterinaria Santa Cruz" class="logo">
+                </span>
+                <div class="header-text">
+                    <span class="name">Recepcionista</span>
+                    <span class="profession">Veterinaria Santa Cruz</span>
+                </div>
             </div>
-        </c:if>
-        <c:if test="${not empty requestScope.mensajeError}">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                ${requestScope.mensajeError}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </c:if>
+             <i class='bx bx-chevron-right toggle'></i>
+        </header>
 
-        <%-- Verificar si la lista de citas está vacía. Si es así, mostrar un mensaje. --%>
-        <c:if test="${empty requestScope.listaDeCitas}">
-            <div class="alert alert-info text-center" role="alert">
-                No hay citas registradas por el momento. ¡Anima a tus clientes a reservar una!
+        <div class="menu-bar">
+            <div class="menu">
+                 <ul class="menu-links">
+                    <li class="nav-link">
+                        <a href="<%= request.getContextPath()%>/VistasWeb/VistasRecep/RecepDash.jsp">
+                            <i class='bx bx-home-alt icon'></i><span class="text nav-text">General</span>
+                        </a>
+                    </li>
+                    <li class="nav-link">
+                        <a href="<%= request.getContextPath()%>/ClienteRServlet">
+                            <i class='bx bx-group icon'></i><span class="text nav-text">Clientes</span></a>
+                    </li>
+                    <li class="nav-link">
+                        <a href="<%= request.getContextPath()%>/CitaServlet"><i class='bx bxs-calendar icon'></i><span class="text nav-text">Citas</span></a>
+                    </li>
+                    <li class="nav-link active"> <%-- Resaltado para la página actual --%>
+                        <a href="<%= request.getContextPath()%>/UsuarioCitaRecepServlet?accion=listarCitaUsuarios">
+                            <i class='bx bx-calendar-alt icon'></i><span class="text nav-text">Citas de Usuarios</span></a>
+                    </li>
+                     <li class="nav-link">
+                        <a href="#">
+                            <i class='bx bx-wallet icon'></i>
+                            <span class="text nav-text">Pagos</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </c:if>
 
-        <%-- Solo mostramos la tabla si hay citas en la lista (la lista no está vacía) --%>
-        <c:if test="${not empty requestScope.listaDeCitas}">
-            <div class="table-responsive"> <%-- Envuelve la tabla en un div responsivo para pantallas pequeñas --%>
-                <table class="table table-striped table-hover table-bordered align-middle">
+            <div class="bottom-content">
+                <li class="">
+                    <a href="<%= request.getContextPath()%>/LogoutServlet">
+                        <i class='bx bx-log-out icon'></i>
+                        <span class="text nav-text">Salir</span>
+                    </a>
+                </li>
+                <li class="mode">
+                    <div class="sun-moon">
+                        <i class='bx bx-moon icon moon'></i>
+                        <i class='bx bx-sun icon sun'></i>
+                    </div>
+                    <span class="mode-text text">Modo Oscuro</span>
+
+                    <div class="toggle-switch">
+                        <span class="switch"></span>
+                    </div>
+                </li>
+            </div>
+        </div>
+    </nav>
+    <%-- FIN DEL CÓDIGO DEL MENÚ LATERAL (SIDEBAR) --%>
+
+    <%-- CONTENIDO PRINCIPAL DE LA PÁGINA DE GESTIÓN DE CITAS DE USUARIO --%>
+    <section class="home">
+        <div class="text">Gestión de Citas de Usuarios</div>
+
+        <%-- Mensaje de notificación --%>
+        <% if (request.getAttribute("mensaje") != null) { %>
+            <div class="alert alert-info" role="alert">
+                <%= request.getAttribute("mensaje") %>
+            </div>
+        <% } %>
+        <% if (request.getAttribute("mensajeBusqueda") != null) { %>
+            <div class="alert alert-secondary" role="alert">
+                <%= request.getAttribute("mensajeBusqueda") %>
+            </div>
+        <% } %>
+
+        <% 
+            String modo = (String) request.getAttribute("modo");
+            if ("listar".equals(modo) || modo == null) { // Mostrar la tabla de listado por defecto
+        %>
+            <div class="mb-3">
+                <%-- Formulario de Búsqueda por ID --%>
+                <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET" style="max-width: 300px;">
+                    <input type="hidden" name="accion" value="buscarMedianteID">
+                    <input class="form-control me-2" type="text" placeholder="Buscar por ID de Cita" name="id">
+                    <button class="btn btn-outline-info" type="submit">Buscar por ID</button>
+                </form>
+
+                <%-- Formulario de Búsqueda General --%>
+                <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET">
+                    <input type="hidden" name="accion" value="buscar">
+                    <input class="form-control me-2" type="search" placeholder="Buscar por cliente, veterinario o estado" aria-label="Search" name="terminoBusqueda">
+                    <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                </form>
+                
+                <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary mb-3">Mostrar Todas las Citas</a>
+            </div>
+
+            <div class="table-container">
+                <table class="table table-bordered table-hover">
                     <thead class="table-dark">
                         <tr>
-                            <th scope="col">ID Cita</th>
-                            <th scope="col">Cliente</th>
-                            <th scope="col">Fecha</th>
-                            <th scope="col">Hora</th>
-                            <th scope="col">Veterinario Asignado</th>
-                            <th scope="col">Estado</th>
-                            <%-- Esta columna puede ser habilitada para botones de acción --%>
-                            <%-- <th scope="col">Acciones</th> --%>
+                            <th>ID Cita</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Veterinario</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <%-- Usamos c:forEach para iterar sobre cada objeto "cita" en "listaDeCitas" --%>
-                        <c:forEach var="cita" items="${requestScope.listaDeCitas}">
-                            <tr>
-                                <%-- Accede a las propiedades de cada objeto "cita" usando EL (Expression Language) --%>
-                                <td>${cita.idCita}</td>
-                                <td>${cita.nombreCliente}</td>
-                                <td>
-                                    <%-- Usa fmt:formatDate para formatear el objeto java.sql.Date a una cadena legible --%>
-                                    <fmt:formatDate value="${cita.fecha}" pattern="dd/MM/yyyy" />
-                                </td>
-                                <td>
-                                    <%-- Usa fmt:formatDate para formatear el objeto java.sql.Time a una cadena legible (formato 24h) --%>
-                                    <fmt:formatDate value="${cita.hora}" pattern="HH:mm" />
-                                </td>
-                                <td>${cita.veterinario}</td>
-                                <td>
-                                    <%-- Usa c:choose y c:when para aplicar clases CSS de Bootstrap (badges) según el valor del estado --%>
-                                    <c:choose>
-                                        <c:when test="${cita.estado eq 'Confirmada'}">
-                                            <span class="badge bg-success">${cita.estado}</span>
-                                        </c:when>
-                                        <c:when test="${cita.estado eq 'Pendiente'}">
-                                            <span class="badge bg-warning text-dark">${cita.estado}</span>
-                                        </c:when>
-                                        <c:when test="${cita.estado eq 'Cancelada'}">
-                                            <span class="badge bg-danger">${cita.estado}</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="badge bg-secondary">${cita.estado}</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-                                <%-- Ejemplo de celda con botones de acción (descomentar y habilitar Servlets si se usan) --%>
-                                <%-- 
-                                <td> 
-                                    <a href="EditarCitaServlet?id=${cita.idCita}" class="btn btn-sm btn-primary me-1">Editar</a> 
-                                    <a href="EliminarCitaServlet?id=${cita.idCita}" class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">Eliminar</a>
-                                </td> 
-                                --%>
-                            </tr>
-                        </c:forEach>
+                        <%
+                            List<UsuarioCitas> citas = (List<UsuarioCitas>) request.getAttribute("citas");
+                            if (citas != null && !citas.isEmpty()) {
+                                for (UsuarioCitas cita : citas) {
+                        %>
+                        <tr>
+                            <td><%= cita.getIdCita() %></td>
+                            <td><%= cita.getNombreCliente() %></td>
+                            <td><%= cita.getFecha() %></td>
+                            <td><%= cita.getHora() %></td>
+                            <td><%= cita.getVeterinario() %></td>
+                            <td><%= cita.getEstado() %></td>
+                            <td>
+                                <a href="UsuarioCitaRecepServlet?accion=EditarCitaUsuario&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">Editar</a>
+                                <a href="UsuarioCitaRecepServlet?accion=EliminarCitaUsuario&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">Eliminar</a>
+                            </td>
+                        </tr>
+                        <%
+                                }
+                            } else {
+                        %>
+                        <tr>
+                            <td colspan="7">No hay citas para mostrar.</td>
+                        </tr>
+                        <%
+                            }
+                        %>
                     </tbody>
                 </table>
             </div>
-        </c:if>
-    </div>
+        <% 
+            } else if ("editar".equals(modo)) {
+                UsuarioCitas cita = (UsuarioCitas) request.getAttribute("cita");
+                if (cita == null) { 
+        %>
+                <div class="alert alert-danger" role="alert">
+                    No se pudo cargar la información de la cita para editar.
+                </div>
+                <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
+        <%      } else { %>
+                <div class="edit-form-container">
+                    <h3>Editar Detalles de Cita</h3>
+                    <form action="UsuarioCitaRecepServlet" method="POST">
+                        <input type="hidden" name="accion" value="guardarEdicion">
+                        <input type="hidden" name="idCita" value="<%= cita.getIdCita() %>">
 
-    <%-- Bootstrap JS (Bundle con Popper) - Necesario para funcionalidades interactivas como las alertas dismissibles --%>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+                        <div class="mb-3">
+                            <label for="idCitaDisplay" class="form-label">ID Cita:</label>
+                            <input type="text" class="form-control" id="idCitaDisplay" value="<%= cita.getIdCita() %>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombreCliente" class="form-label">Cliente:</label>
+                            <input type="text" class="form-control" id="nombreCliente" value="<%= cita.getNombreCliente() %>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha:</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha" value="<%= cita.getFecha() %>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="hora" class="form-label">Hora:</label>
+                            <input type="time" class="form-control" id="hora" name="hora" value="<%= cita.getHora() %>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="veterinario" class="form-label">Veterinario:</label>
+                            <input type="text" class="form-control" id="veterinario" value="<%= cita.getVeterinario() %>" readonly>
+                            </div>
+                        <div class="mb-3">
+                            <label for="estado" class="form-label">Estado:</label>
+                            <select class="form-select" id="estado" name="estado" required>
+                                <option value="Pendiente" <%= "Pendiente".equals(cita.getEstado()) ? "selected" : "" %>>Pendiente</option>
+                                <option value="Confirmada" <%= "Confirmada".equals(cita.getEstado()) ? "selected" : "" %>>Confirmada</option>
+                                <option value="Completada" <%= "Completada".equals(cita.getEstado()) ? "selected" : "" %>>Completada</option>
+                                <option value="Cancelada" <%= "Cancelada".equals(cita.getEstado()) ? "selected" : "" %>>Cancelada</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Cancelar y Volver</a>
+                    </form>
+                </div>
+        <%      } // Fin de if (cita == null) para editar
+            } // Fin de if "editar"
+        %>
+    </section>
+
+    <%-- Scripts para el modo noche y sidebar --%>
+    <script src="<%= request.getContextPath()%>/Js/JsAdmin/ModoNoche-Sidebar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
