@@ -3,12 +3,13 @@
 <%@ page import="Modelo.UsuarioCliente" %>
 <%@ page import="java.util.List" %>
 <%@ page import="Modelo.Veterinario" %>
-<%@ page import="Modelo.UsuarioCitas" %> 
+<%-- No es estrictamente necesario importar UsuarioCitas aquí a menos que vayas a instanciarlo o usar sus métodos directamente en el JSP --%>
+<%-- <%@ page import="Modelo.UsuarioCitas" %> --%>
 
 <%
     // Obtener el objeto usuario de la sesión
     UsuarioCliente usuarioObj = (UsuarioCliente) session.getAttribute("usuario");
-    String usuario = (usuarioObj != null && usuarioObj.getNombre() != null) ? usuarioObj.getNombre() : "";
+    String usuarioNombre = (usuarioObj != null && usuarioObj.getNombre() != null) ? usuarioObj.getNombre() : ""; // Renombrado para claridad
     String mensaje = request.getParameter("mensaje");
 
     // Fecha y hora actuales para validación en el cliente y valores mínimos
@@ -16,7 +17,8 @@
     LocalTime horaActual = LocalTime.now();
 
     // Obtener la lista de veterinarios del request (pasada por el servlet)
-    List<Modelo.Veterinario> listaVeterinarios = (List<Modelo.Veterinario>) request.getAttribute("listaVeterinarios");
+    // Asegúrate del cast correcto si el tipo genérico es importante
+    List<Veterinario> listaVeterinarios = (List<Veterinario>) request.getAttribute("listaVeterinarios");
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -44,18 +46,18 @@
             background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.3); z-index: 2000; padding-top: 50px; overflow-y: auto;
         }
         .sidebar-perfil.active { display: block; }
+        #sidebarOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 1500; }
+        #sidebarOverlay.active { display: block; }
         .sidebar-perfil h2 { margin: 0 0 20px 20px; font-weight: 600; font-size: 22px; }
         .sidebar-perfil a { display: block; padding: 15px 25px; color: #333; text-decoration: none; border-bottom: 1px solid #eee; font-size: 16px; transition: background 0.2s; }
         .sidebar-perfil a:hover { background: #f0f0f0; }
-        #sidebarOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 1500; }
-        #sidebarOverlay.active { display: block; }
         .registro-cita {
             max-width: 600px; margin: 40px auto 60px auto; padding: 20px;
             border: 1px solid #ccc; border-radius: 8px; background: #fff;
         }
         .registro-cita h3 { text-align: center; margin-bottom: 20px; font-weight: 600; font-size: 1.8rem; color: #3aafa9; }
         .registro-cita label { display: block; margin: 12px 0 6px; font-weight: 500; }
-        .registro-cita input, .registro-cita select, .registro-cita textarea { /* Añadido textarea aquí */
+        .registro-cita input, .registro-cita select, .registro-cita textarea {
             width: 100%; padding: 10px; border: 1px solid #999; border-radius: 4px; font-size: 1rem; box-sizing: border-box;
         }
         .registro-cita .button-group { display: flex; gap: 15px; margin-top: 20px; }
@@ -104,7 +106,7 @@
 %>
             <div class="alert-error">Error al registrar la cita. Por favor, inténtalo de nuevo.</div>
 <%
-        } else if ("error_veterinario_no_encontrado".equals(mensaje)) {
+        } else if ("veterinario_no_encontrado".equals(mensaje)) { // Mensaje corregido
 %>
             <div class="alert-error">Error: No se pudo encontrar el veterinario seleccionado. Por favor, intente de nuevo.</div>
 <%
@@ -114,7 +116,7 @@
 <%
         } else if ("error_formato_numero".equals(mensaje)) {
 %>
-            <div class="alert-error">Error: Datos numéricos inválidos (ID de cliente o veterinario).</div>
+            <div class="alert-error">Error: Datos numéricos inválidos (ID de veterinario).</div>
 <%
         } else if ("error_inesperado".equals(mensaje)) {
 %>
@@ -132,11 +134,14 @@
     <h3>Registrar Nueva Cita</h3>
     <form id="formCita" action="${pageContext.request.contextPath}/UsuarioCitasServlet" method="post" onsubmit="return validarFechaHora()">
         <input type="hidden" name="accion" value="registrar">
-        <input type="hidden" name="idCliente" value="<%= usuarioObj != null ? usuarioObj.getIdUsuario() : "" %>">
+        <%-- El idCliente ya se obtiene de la sesión en el Servlet, este hidden input es redundante para el registro
+             pero si lo quieres mantener por si acaso, no causa daño. --%>
+        <%-- <input type="hidden" name="idCliente" value="<%= usuarioObj != null ? usuarioObj.getIdUsuario() : "" %>"> --%>
 
         <label for="nombreCliente">Cliente:</label>
-        <input type="text" id="nombreCliente" name="nombreClienteDisplay" value="<%= usuario %>" required readonly />
-        <small class="form-text text-muted">Este es tu nombre de usuario. El ID se envía automáticamente.</small>
+        <%-- Este campo es solo para visualización, ya que el ID se obtiene de la sesión en el Servlet --%>
+        <input type="text" id="nombreCliente" name="nombreClienteDisplay" value="<%= usuarioNombre %>" required readonly />
+        <small class="form-text text-muted">Este es tu nombre de usuario. Tu ID de cliente se gestiona automáticamente.</small>
 
         <label for="fecha">Fecha:</label>
         <input type="date" id="fecha" name="fecha" min="<%= fechaActual %>" required />
@@ -150,13 +155,14 @@
         <select name="idVeterinario" id="idVeterinario" required>
             <option value="">-- Seleccione un veterinario --</option>
             <%
-                if (listaVeterinarios == null) {
-                    out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios es NULL</option>");
-                } else if (listaVeterinarios.isEmpty()) {
-                    out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios está VACÍA</option>");
-                } else {
-                    out.println("<option value=\"\" disabled>DEBUG JSP: " + listaVeterinarios.size() + " veterinarios encontrados</option>");
-                }
+                // Eliminar los comentarios de depuración que imprimen en el HTML final
+                // if (listaVeterinarios == null) {
+                //     out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios es NULL</option>");
+                // } else if (listaVeterinarios.isEmpty()) {
+                //     out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios está VACÍA</option>");
+                // } else {
+                //     out.println("<option value=\"\" disabled>DEBUG JSP: " + listaVeterinarios.size() + " veterinarios encontrados</option>");
+                // }
             %>
             <%
                 if (listaVeterinarios != null && !listaVeterinarios.isEmpty()) {
@@ -204,7 +210,7 @@
         this.classList.remove('active');
     });
 
-    // Validación de fecha y hora
+    // Validación de fecha y hora en el lado del cliente
     function validarFechaHora() {
         const fechaInput = document.getElementById('fecha');
         const horaInput = document.getElementById('hora');
@@ -212,24 +218,28 @@
         const errorHora = document.getElementById('errorHora');
 
         const hoy = new Date();
+        // Normalizar la fecha de hoy a YYYY-MM-DD para comparación
         const hoySoloFecha = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const fechaSeleccionada = new Date(fechaInput.value);
+        // Normalizar la fecha seleccionada a YYYY-MM-DD para comparación
         const fechaSeleccionadaSoloFecha = new Date(fechaSeleccionada.getFullYear(), fechaSeleccionada.getMonth(), fechaSeleccionada.getDate());
 
         errorFecha.style.display = 'none';
         errorHora.style.display = 'none';
 
+        // Validar que la fecha no sea pasada
         if (fechaSeleccionadaSoloFecha < hoySoloFecha) {
             errorFecha.style.display = 'block';
             fechaInput.focus();
             return false;
         }
 
+        // Si la fecha seleccionada es hoy, validar la hora
         if (fechaSeleccionadaSoloFecha.getTime() === hoySoloFecha.getTime()) {
             const horaSeleccionadaPartes = horaInput.value.split(':');
             const horaSeleccionadaObj = new Date();
-            horaSeleccionadaObj.setHours(parseInt(horaSeleccionadaPartes[0]));
-            horaSeleccionadaObj.setMinutes(parseInt(horaSeleccionadaPartes[1]));
+            horaSeleccionadaObj.setHours(parseInt(horaSeleccionadaPartes[0], 10)); // Base 10
+            horaSeleccionadaObj.setMinutes(parseInt(horaSeleccionadaPartes[1], 10)); // Base 10
             horaSeleccionadaObj.setSeconds(0);
             horaSeleccionadaObj.setMilliseconds(0);
 
@@ -246,10 +256,11 @@
         return true;
     }
 
+    // Establecer la fecha mínima para el input de fecha (hoy) al cargar la página
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Mes + 1 porque es 0-indexado
         const day = String(today.getDate()).padStart(2, '0');
         const minDate = `${year}-${month}-${day}`;
         document.getElementById('fecha').setAttribute('min', minDate);

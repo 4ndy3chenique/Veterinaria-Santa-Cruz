@@ -13,18 +13,29 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class UsuarioCitasDAO {
+    // Variables para la conexión a la base de datos
     private Connection con;
     private PreparedStatement ps;
     private ResultSet rs;
+    private CallableStatement cs; // Para Stored Procedures
+
+    // Logger para depuración y seguimiento de errores
     private static final Logger LOGGER = Logger.getLogger(UsuarioCitasDAO.class.getName());
 
+    /**
+     * Lista todos los veterinarios disponibles para la selección de citas.
+     * @return Una lista de objetos Veterinario.
+     */
     public List<Veterinario> listarVeterinariosParaUsuarioCitas() {
         List<Veterinario> lista = new ArrayList<>();
-        String sql = "SELECT idVeterinario, V_Nombre, V_Apellido, V_Especialidad FROM veterinario ORDER BY V_Nombre";
+        // Consulta SQL para obtener los datos básicos de los veterinarios
+        String sql = "SELECT idVeterinario, V_Nombre, V_Apellido, V_Especialidad FROM Veterinario ORDER BY V_Nombre";
         try {
-            con = Conexion.getConnection();
+            con = Conexion.getConnection(); // Obtener la conexión
             ps = con.prepareStatement(sql);
-            rs = ps.executeQuery();
+            rs = ps.executeQuery(); // Ejecutar la consulta
+
+            // Iterar sobre los resultados y construir objetos Veterinario
             while (rs.next()) {
                 Veterinario vet = new Veterinario();
                 vet.setIdVeterinario(rs.getInt("idVeterinario"));
@@ -36,60 +47,70 @@ public class UsuarioCitasDAO {
             LOGGER.info("Se obtuvieron " + lista.size() + " veterinarios del DAO.");
         } catch (SQLException e) {
             LOGGER.severe("Error SQL al listar veterinarios: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(); // Imprimir la traza completa del error para depuración
         } finally {
-            // Asegúrate de cerrar los recursos en el orden inverso al que se abrieron
-            try {
-                if (rs != null) rs.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar ResultSet en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
-            }
-            try {
-                if (ps != null) ps.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar PreparedStatement en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
-            }
-            try {
-                if (con != null) con.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar Connection en listarVeterinariosParaUsuarioCitas: " + e.getMessage());
-            }
+            closeResources(con, ps, rs); // Cerrar los recursos
         }
         return lista;
     }
 
-    public boolean registrarCita(UsuarioCitas cita) {
-        CallableStatement cs = null;
-        // Ajusta esta cadena SQL para que coincida EXACTAMENTE con los parámetros de tu Stored Procedure.
-        // Basado en tu ejemplo de `CALL sp_registrar_cita(1, 1, '2025-07-15', '10:00:00', 'Laura Gómez', 'Revisión anual', 'Pendiente');`
-        // tu SP espera 7 parámetros. Si tu objeto UsuarioCitas no tiene 'nombreCliente', tendrás que obtenerlo.
-        // POR AHORA, asumo que tienes 'nombreCliente' en tu objeto UsuarioCitas o lo obtendrás de algún lugar.
-        // Si tu SP tiene solo 6 parámetros (sin 'nombreCliente'), usa "{CALL sp_registrar_cita(?, ?, ?, ?, ?, ?)}".
-        String sql = "{CALL sp_registrar_cita(?, ?, ?, ?, ?, ?, ?)}"; // 7 placeholders para ID_Cliente, ID_Veterinario, Fecha, Hora, Nombre_Cliente, Motivo, Estado
-        
+    /**
+     * Obtiene el nombre completo de un veterinario dado su ID.
+     * @param idVeterinario El ID del veterinario.
+     * @return El nombre completo del veterinario (Nombre Apellido) o null si no se encuentra.
+     */
+    public String getNombreVeterinarioById(int idVeterinario) {
+        String nombreVeterinario = null;
+        String sql = "SELECT V_Nombre, V_Apellido FROM Veterinario WHERE idVeterinario = ?";
         try {
             con = Conexion.getConnection();
-            cs = con.prepareCall(sql);
-            
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, idVeterinario);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                // Concatenar nombre y apellido para obtener el nombre completo
+                nombreVeterinario = rs.getString("V_Nombre") + " " + rs.getString("V_Apellido");
+                LOGGER.info("Nombre de veterinario encontrado para ID " + idVeterinario + ": " + nombreVeterinario);
+            } else {
+                LOGGER.warning("No se encontró veterinario con ID: " + idVeterinario);
+            }
+        } catch (SQLException e) {
+            LOGGER.severe("Error SQL al obtener nombre de veterinario por ID: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(con, ps, rs);
+        }
+        return nombreVeterinario;
+    }
+
+    /**
+     * Registra una nueva cita en la base de datos utilizando un Stored Procedure.
+     * @param cita El objeto UsuarioCitas con los datos de la cita.
+     * @return true si la cita se registró con éxito, false en caso contrario.
+     */
+    public boolean registrarCita(UsuarioCitas cita) {
+        // La cadena SQL para llamar a tu Stored Procedure
+        // Asegúrate de que el número y tipo de placeholders (?) coincidan con los parámetros de tu SP.
+        // sp_registrar_cita(idUsuario INT, idVeterinario INT, fecha DATE, hora TIME, veterinario VARCHAR(100), motivo VARCHAR(50), estado VARCHAR(50))
+        String sql = "{CALL sp_registrar_cita(?, ?, ?, ?, ?, ?, ?)}";
+
+        try {
+            con = Conexion.getConnection();
+            cs = con.prepareCall(sql); // Usar prepareCall para Stored Procedures
+
+            // Establecer los parámetros del Stored Procedure
             cs.setInt(1, cita.getIdUsuario());
             cs.setInt(2, cita.getIdVeterinario());
             cs.setDate(3, cita.getFecha());
             cs.setTime(4, cita.getHora());
-            
-            // Si el nombre del cliente se necesita, asegúrate de que esté en el objeto 'cita'.
-            // Por ejemplo, si tienes un método getNombreCliente() en UsuarioCitas:
-            // cs.setString(5, cita.getNombreCliente());
-            // Si no lo tienes en UsuarioCitas y el SP lo necesita, deberías pasarlo desde el Servlet.
-            // Para la demostración, usaré un valor fijo o ajusta según tu necesidad.
-            // Si el nombre del cliente NO es un parámetro en tu SP, quita esta línea y ajusta el SQL a 6 '?'
-            cs.setString(5, "NombreClienteTemporal"); // **Ajusta esto** Si tu SP necesita el nombre del cliente y no lo tienes en 'cita'. O quita si tu SP es de 6 parámetros.
-            
+            cs.setString(5, cita.getVeterinario()); // Aquí se usa el nombre del veterinario ya en el objeto cita
             cs.setString(6, cita.getMotivo());
             cs.setString(7, cita.getEstado());
 
-            int filasAfectadas = cs.executeUpdate();
+            int filasAfectadas = cs.executeUpdate(); // Ejecutar el SP
+
             if (filasAfectadas > 0) {
-                LOGGER.info("Cita registrada exitosamente en la BD mediante SP para cliente ID: " + cita.getIdUsuario());
+                LOGGER.info("Cita registrada exitosamente en la BD mediante SP para cliente ID: " + cita.getIdUsuario() + ". Filas afectadas: " + filasAfectadas);
                 return true;
             } else {
                 LOGGER.warning("No se insertó la cita en la BD mediante SP. Filas afectadas: " + filasAfectadas);
@@ -100,25 +121,21 @@ public class UsuarioCitasDAO {
             e.printStackTrace();
             return false;
         } finally {
-            try {
-                if (cs != null) cs.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar CallableStatement en registrarCita (SP): " + e.getMessage());
-            }
-            try {
-                if (con != null) con.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar Connection en registrarCita (SP): " + e.getMessage());
-            }
+            // Asegurarse de cerrar CallableStatement y Connection
+            closeResources(con, cs, null); // No hay ResultSet en este caso
         }
     }
 
-    // Nuevo método para listar citas por usuario (para historialdecitas.jsp)
+    /**
+     * Lista las citas de un usuario específico de la tabla UsuarioCitas.
+     * @param idUsuario El ID del usuario cuyas citas se quieren listar.
+     * @return Una lista de objetos UsuarioCitas.
+     */
     public List<UsuarioCitas> listarCitasPorUsuario(int idUsuario) {
         List<UsuarioCitas> listaCitas = new ArrayList<>();
-        // Ajusta esta consulta SQL para seleccionar las citas del usuario.
-        // Asegúrate de que las columnas coincidan con tu tabla 'Citas'.
-        String sql = "SELECT idCita, idUsuario, idVeterinario, fechaCita, horaCita, motivo, estado FROM Citas WHERE idUsuario = ?"; 
+        // **CORREGIDO**: La consulta debe apuntar a la tabla y columnas correctas
+        // de tu esquema de BD (UsuarioCitas, id_cita, fecha, hora, veterinario, etc.)
+        String sql = "SELECT id_cita, idUsuario, idVeterinario, fecha, hora, veterinario, motivo, estado FROM UsuarioCitas WHERE idUsuario = ?";
         try {
             con = Conexion.getConnection();
             ps = con.prepareStatement(sql);
@@ -126,15 +143,15 @@ public class UsuarioCitasDAO {
             rs = ps.executeQuery();
             while (rs.next()) {
                 UsuarioCitas cita = new UsuarioCitas();
-                cita.setIdCita(rs.getInt("idCita"));
+                cita.setIdCita(rs.getInt("id_cita")); // Usar el nombre de columna de la DB
                 cita.setIdUsuario(rs.getInt("idUsuario"));
                 cita.setIdVeterinario(rs.getInt("idVeterinario"));
-                cita.setFecha(rs.getDate("fechaCita"));
-                cita.setHora(rs.getTime("horaCita"));
+                cita.setFecha(rs.getDate("fecha"));   // Usar el nombre de columna de la DB
+                cita.setHora(rs.getTime("hora"));     // Usar el nombre de columna de la DB
+                cita.setVeterinario(rs.getString("veterinario")); // Obtener el nombre del veterinario de la columna 'veterinario'
                 cita.setMotivo(rs.getString("motivo"));
                 cita.setEstado(rs.getString("estado"));
-                // Si necesitas el nombre del veterinario o el cliente en el objeto cita,
-                // deberías hacer un JOIN en la consulta SQL o cargar esos datos por separado.
+
                 listaCitas.add(cita);
             }
             LOGGER.info("Se obtuvieron " + listaCitas.size() + " citas para el usuario con ID: " + idUsuario);
@@ -142,25 +159,32 @@ public class UsuarioCitasDAO {
             LOGGER.severe("Error SQL al listar citas por usuario: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            // Asegúrate de cerrar los recursos en el orden inverso al que se abrieron
-            try {
-                if (rs != null) rs.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar ResultSet en listarCitasPorUsuario: " + e.getMessage());
-            }
-            try {
-                if (ps != null) ps.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar PreparedStatement en listarCitasPorUsuario: " + e.getMessage());
-            }
-            try {
-                if (con != null) con.close();
-            } catch (SQLException e) {
-                LOGGER.severe("Error al cerrar Connection en listarCitasPorUsuario: " + e.getMessage());
-            }
+            closeResources(con, ps, rs);
         }
         return listaCitas;
     }
-    
-    
+
+    /**
+     * Método de utilidad para cerrar los recursos de la base de datos de manera segura.
+     * @param conn La conexión a cerrar.
+     * @param stmt El PreparedStatement o CallableStatement a cerrar.
+     * @param rs El ResultSet a cerrar.
+     */
+    private void closeResources(Connection conn, PreparedStatement stmt, ResultSet rs) {
+        try {
+            if (rs != null) rs.close();
+        } catch (SQLException e) {
+            LOGGER.severe("Error al cerrar ResultSet: " + e.getMessage());
+        }
+        try {
+            if (stmt != null) stmt.close();
+        } catch (SQLException e) {
+            LOGGER.severe("Error al cerrar PreparedStatement/CallableStatement: " + e.getMessage());
+        }
+        try {
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            LOGGER.severe("Error al cerrar Connection: " + e.getMessage());
+        }
+    }
 }

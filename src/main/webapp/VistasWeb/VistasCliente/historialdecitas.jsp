@@ -6,19 +6,32 @@
 <%
     // Obtener el objeto usuario de la sesión
     UsuarioCliente usuarioObj = (UsuarioCliente) session.getAttribute("usuario");
-    String usuario = usuarioObj != null ? usuarioObj.getNombre() : ""; // Usa el getter correcto según tu modelo
-    UsuarioCitasDAO dao = new UsuarioCitasDAO();
-    List<UsuarioCitas> citas = dao.listarCitasPorUsuario(usuario);
+    String usuarioNombre = ""; // Inicializar para evitar NullPointerException
+
+    List<UsuarioCitas> citas = null; // Inicializar lista de citas
     String mensaje = request.getParameter("mensaje");
+
+    if (usuarioObj != null) {
+        usuarioNombre = usuarioObj.getNombre();
+        // **CORRECCIÓN CLAVE AQUÍ:** Pasa el ID del usuario al DAO, no el nombre
+        UsuarioCitasDAO dao = new UsuarioCitasDAO();
+        citas = dao.listarCitasPorUsuario(usuarioObj.getIdUsuario());
+    } else {
+        // Si el usuario no está logeado, redirigir a la página de login
+        response.sendRedirect(request.getContextPath() + "/VistasWeb/VistasCliente/login.jsp");
+        return; // Detener la ejecución del JSP
+    }
 %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Historial de Citas</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/historialdecitas.css">
+    <%-- Si tienes un archivo CSS externo, asegúrate de que exista y contenga los estilos --%>
+    <%-- <link rel="stylesheet" href="${pageContext.request.contextPath}/css/historialdecitas.css"> --%>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
     <style>
+        /* Tus estilos CSS internos */
         body { font-family: 'Poppins', Arial, sans-serif; background: #f8f8f8; margin: 0; }
         .navbar {
             display: flex; align-items: center; justify-content: space-between;
@@ -60,7 +73,6 @@
     </style>
 </head>
 <body>
-<!-- Barra de Navegación -->
 <nav class="navbar">
     <div class="logo-container">
         <a href="${pageContext.request.contextPath}/index.jsp">
@@ -87,30 +99,31 @@
 <% } %>
 
 <div class="historial-container">
-    <h1>Historial de Citas</h1>
+    <h1>Historial de Citas de <%= usuarioNombre %></h1> <%-- Muestra el nombre del usuario --%>
     <table>
         <thead>
             <tr>
+                <th>ID Cita</th> <%-- Agregado ID de Cita para referencia --%>
                 <th>Fecha</th>
                 <th>Hora</th>
-                <th>Cliente</th>
+                <th>Veterinario</th> <%-- Aquí se muestra el nombre del veterinario obtenido de la DB --%>
                 <th>Motivo</th>
-                <th>Veterinario</th>
                 <th>Estado</th>
             </tr>
         </thead>
         <tbody>
         <%
+            // Verifica que la lista no sea nula antes de intentar iterar
             if (citas != null && !citas.isEmpty()) {
                 for (UsuarioCitas c : citas) {
         %>
             <tr>
+                <td><%= c.getIdCita() %></td>
                 <td><%= c.getFecha() %></td>
                 <td><%= c.getHora() %></td>
-                <td><%= c.getNombreCliente() %></td>
+                <td><%= c.getVeterinario() %></td> <%-- Usa getVeterinario() para el nombre del veterinario --%>
+                <td><%= c.getMotivo() %></td> <%-- Asegúrate de que este dato venga de la DB --%>
                 <td><%= c.getEstado() %></td>
-                <td><%= c.getVeterinario() %></td>
-                <td>Agendada</td>
             </tr>
         <%
                 }
@@ -126,7 +139,6 @@
     </table>
 </div>
 
-<!-- Sidebar perfil -->
 <div id="sidebarPerfil" class="sidebar-perfil" role="dialog" aria-modal="true" aria-labelledby="perfilTitle">
     <h2 id="perfilTitle">Mi Perfil</h2>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/MiPerfil.jsp">Mi perfil</a>
@@ -138,7 +150,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Menú hamburguesa
+    // Menú hamburguesa (si aplica, no está en tu HTML actual, pero lo dejé si lo tenías)
     var hamburger = document.getElementById('hamburger');
     if (hamburger) {
         hamburger.addEventListener('click', function() {
@@ -171,8 +183,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname.toLowerCase();
     navLinks.forEach(link => {
         const href = link.getAttribute('href').toLowerCase();
+        // Ajustado para que "Citas agendadas" (historialdecitas.jsp) también marque su link si lo tuvieras en el navbar principal.
+        // Si no tienes un link directo en el navbar principal para "Citas agendadas", puedes omitir esta parte.
         if (path.includes('historialdecitas')) {
-            // Si quieres marcar activo, añade aquí la lógica
+            // Ejemplo: si tienes un enlace directo en el navbar para "Citas agendadas"
+            // link.classList.add('active-link');
         } else if (path.includes('nosotros') && href.includes('nosotros')) {
             link.classList.add('active-link');
         } else if (path.includes('servicios') && href.includes('servicios')) {
