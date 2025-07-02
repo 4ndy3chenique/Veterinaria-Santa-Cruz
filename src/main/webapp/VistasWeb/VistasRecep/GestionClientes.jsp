@@ -1,4 +1,5 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ include file="/proteger.jsp" %>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="java.util.List" %>
 <%@ page import="Modelo.Cliente" %>
 <%@ page import="Modelo.Veterinario" %>

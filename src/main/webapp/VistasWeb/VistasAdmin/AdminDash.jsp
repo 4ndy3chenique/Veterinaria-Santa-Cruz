@@ -1,4 +1,6 @@
+<%@ include file="/proteger.jsp" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -63,7 +65,7 @@
                 </ul>
             </div>
         </nav>
-        <button id="modoNocheBtn" class="modo-noche-flotante" aria-label="Cambiar a modo noche">🌙</button>
+        <button id="modoNocheBtn" class="modo-noche-flotante" aria-label="Cambiar a modo noche">?</button>
         <script src="<%= request.getContextPath()%>/Js/JsAdmin/ModoNoche-Sidebar.js"></script>
     </body>
 </html>

@@ -1,7 +1,8 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ include file="/proteger.jsp" %>
 <%@ page import="java.util.List" %>
 <%@ page import="Modelo.UsuarioCitas" %>
 <%@ page import="ModeloDAO.UsuarioCitasDAO" %>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="Modelo.UsuarioCliente" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.LocalTime" %>

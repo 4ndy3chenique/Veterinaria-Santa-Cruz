@@ -1,13 +1,16 @@
+<%@ include file="/proteger.jsp" %>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="Modelo.UsuarioCitas"%>
 <%@page import="Modelo.UsuarioCliente" %> <%-- Importar UsuarioCliente para obtener nombre si es necesario --%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Citas de Usuarios - VeterinariaSantaCruz</title>
+    <title>Gesti�n de Citas de Usuarios - VeterinariaSantaCruz</title>
     <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath()%>/css/ModoNoche-Sidebar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -37,7 +40,7 @@
         .hidden {
             display: none;
         }
-        /* Estilos para el formulario de edición */
+        /* Estilos para el formulario de edici�n */
         .edit-form-container {
             max-width: 600px;
             margin: 20px auto;
@@ -59,7 +62,7 @@
     </style>
 </head>
 <body>
-    <%-- INICIO DEL CÓDIGO DEL MENÚ LATERAL (SIDEBAR) --%>
+    <%-- INICIO DEL C�DIGO DEL MEN� LATERAL (SIDEBAR) --%>
     <nav class="sidebar">
         <header>
             <div class="image-text">
@@ -89,7 +92,7 @@
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/CitaServlet"><i class='bx bxs-calendar icon'></i><span class="text nav-text">Citas</span></a>
                     </li>
-                    <li class="nav-link active"> <%-- Resaltado para la página actual --%>
+                    <li class="nav-link active"> <%-- Resaltado para la p�gina actual --%>
                         <a href="<%= request.getContextPath()%>/UsuarioCitaRecepServlet?accion=listarCitaUsuarios">
                             <i class='bx bx-calendar-alt icon'></i><span class="text nav-text">Citas de Usuarios</span></a>
                     </li>
@@ -123,13 +126,13 @@
             </div>
         </div>
     </nav>
-    <%-- FIN DEL CÓDIGO DEL MENÚ LATERAL (SIDEBAR) --%>
+    <%-- FIN DEL C�DIGO DEL MEN� LATERAL (SIDEBAR) --%>
 
-    <%-- CONTENIDO PRINCIPAL DE LA PÁGINA DE GESTIÓN DE CITAS DE USUARIO --%>
+    <%-- CONTENIDO PRINCIPAL DE LA P�GINA DE GESTI�N DE CITAS DE USUARIO --%>
     <section class="home">
-        <div class="text">Gestión de Citas de Usuarios</div>
+        <div class="text">Gesti�n de Citas de Usuarios</div>
 
-        <%-- Mensaje de notificación --%>
+        <%-- Mensaje de notificaci�n --%>
         <% if (request.getAttribute("mensaje") != null) { %>
             <div class="alert alert-info" role="alert">
                 <%= request.getAttribute("mensaje") %>
@@ -143,18 +146,18 @@
 
         <%
             String modo = (String) request.getAttribute("modo");
-            // Mostrar la tabla de listado por defecto o si se especificó "listar" o búsqueda
+            // Mostrar la tabla de listado por defecto o si se especific� "listar" o b�squeda
             if ("listar".equals(modo) || modo == null || "buscar".equals(modo) || "buscarMedianteID".equals(modo)) {
         %>
             <div class="mb-3">
-                <%-- Formulario de Búsqueda por ID --%>
+                <%-- Formulario de B�squeda por ID --%>
                 <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET" style="max-width: 300px;">
                     <input type="hidden" name="accion" value="buscarMedianteID">
                     <input class="form-control me-2" type="text" placeholder="Buscar por ID de Cita" name="id">
                     <button class="btn btn-outline-info" type="submit">Buscar por ID</button>
                 </form>
 
-                <%-- Formulario de Búsqueda General --%>
+                <%-- Formulario de B�squeda General --%>
                 <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET">
                     <input type="hidden" name="accion" value="buscar">
                     <input class="form-control me-2" type="search" placeholder="Buscar por cliente, veterinario o estado" aria-label="Search" name="terminoBusqueda">
@@ -190,15 +193,15 @@
                             <td><%= cita.getFecha() %></td>
                             <td><%= cita.getHora() %></td>
                             <td><%= cita.getVeterinario() %></td>
-                            <td><%= cita.getMotivo() %></td> <%-- Asegúrate de que este dato venga de la DB --%>
+                            <td><%= cita.getMotivo() %></td> <%-- Aseg�rate de que este dato venga de la DB --%>
                             <td><%= cita.getEstado() %></td>
                             <td>
                                 <%-- Botones de Acciones --%>
                                 <div class="d-grid gap-2">
                                     <a href="UsuarioCitaRecepServlet?accion=editar&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">Editar</a>
-                                    <%-- El botón "Ver" puede ser opcional si el editar ya muestra toda la info en readonly --%>
+                                    <%-- El bot�n "Ver" puede ser opcional si el editar ya muestra toda la info en readonly --%>
                                     <%-- <a href="UsuarioCitaRecepServlet?accion=ver&id=<%= cita.getIdCita() %>" class="btn btn-info btn-sm">Ver</a> --%>
-                                    <a href="UsuarioCitaRecepServlet?accion=eliminar&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">Eliminar</a>
+                                    <a href="UsuarioCitaRecepServlet?accion=eliminar&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm('�Est�s seguro de que quieres eliminar esta cita?');">Eliminar</a>
                                 </div>
                                 <div class="dropdown mt-2">
                                     <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="dropdownEstado<%= cita.getIdCita() %>" data-bs-toggle="dropdown" aria-expanded="false">
@@ -227,12 +230,12 @@
                 </table>
             </div>
         <%
-            } else if ("editar".equals(modo) || "ver".equals(modo)) { // Modo de edición o visualización de una cita
+            } else if ("editar".equals(modo) || "ver".equals(modo)) { // Modo de edici�n o visualizaci�n de una cita
                 UsuarioCitas cita = (UsuarioCitas) request.getAttribute("cita");
                 if (cita == null) {
         %>
                 <div class="alert alert-danger" role="alert">
-                    No se pudo cargar la información de la cita.
+                    No se pudo cargar la informaci�n de la cita.
                 </div>
                 <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
         <%     } else { %>
