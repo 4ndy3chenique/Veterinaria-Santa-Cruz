@@ -3,6 +3,10 @@
 <%@ page import="Modelo.UsuarioCitas" %>
 <%@ page import="ModeloDAO.UsuarioCitasDAO" %>
 <%@ page import="Modelo.UsuarioCliente" %>
+<%@ page import="java.time.LocalDate" %>
+<%@ page import="java.time.LocalTime" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.sql.Time" %>
 <%
     // Obtener el objeto usuario de la sesión
     UsuarioCliente usuarioObj = (UsuarioCliente) session.getAttribute("usuario");
@@ -11,15 +15,20 @@
     List<UsuarioCitas> citas = null; // Inicializar lista de citas
     String mensaje = request.getParameter("mensaje");
 
+    // Obtener fecha y hora actual
+    LocalDate fechaActual = LocalDate.now();
+    LocalTime horaActual = LocalTime.now();
+    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    DateTimeFormatter timeFormatter24h = DateTimeFormatter.ofPattern("HH:mm");
+    DateTimeFormatter timeFormatter12h = DateTimeFormatter.ofPattern("hh:mm a");
+
     if (usuarioObj != null) {
         usuarioNombre = usuarioObj.getNombre();
-        // **CORRECCIÓN CLAVE AQUÍ:** Pasa el ID del usuario al DAO, no el nombre
         UsuarioCitasDAO dao = new UsuarioCitasDAO();
         citas = dao.listarCitasPorUsuario(usuarioObj.getIdUsuario());
     } else {
-        // Si el usuario no está logeado, redirigir a la página de login
         response.sendRedirect(request.getContextPath() + "/VistasWeb/VistasCliente/login.jsp");
-        return; // Detener la ejecución del JSP
+        return;
     }
 %>
 <!DOCTYPE html>
@@ -27,11 +36,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Historial de Citas</title>
-    <%-- Si tienes un archivo CSS externo, asegúrate de que exista y contenga los estilos --%>
-    <%-- <link rel="stylesheet" href="${pageContext.request.contextPath}/css/historialdecitas.css"> --%>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
     <style>
-        /* Tus estilos CSS internos */
         body { font-family: 'Poppins', Arial, sans-serif; background: #f8f8f8; margin: 0; }
         .navbar {
             display: flex; align-items: center; justify-content: space-between;
@@ -70,6 +76,8 @@
         }
         .alert-success { background: #d4edda; color: #155724; }
         .alert-error { background: #f8d7da; color: #721c24; }
+        .hora-am-pm { text-transform: lowercase; }
+        .hora-pasada { color: red; }
     </style>
 </head>
 <body>
@@ -99,30 +107,47 @@
 <% } %>
 
 <div class="historial-container">
-    <h1>Historial de Citas de <%= usuarioNombre %></h1> <%-- Muestra el nombre del usuario --%>
+    <h1>Historial de Citas de <%= usuarioNombre %></h1>
     <table>
         <thead>
             <tr>
-                <th>ID Cita</th> <%-- Agregado ID de Cita para referencia --%>
+                <th>ID Cita</th>
                 <th>Fecha</th>
                 <th>Hora</th>
-                <th>Veterinario</th> <%-- Aquí se muestra el nombre del veterinario obtenido de la DB --%>
+                <th>Veterinario</th>
                 <th>Motivo</th>
                 <th>Estado</th>
             </tr>
         </thead>
         <tbody>
         <%
-            // Verifica que la lista no sea nula antes de intentar iterar
             if (citas != null && !citas.isEmpty()) {
                 for (UsuarioCitas c : citas) {
+                    // Convertir hora a formato AM/PM
+                    String horaFormateada = "";
+                    boolean esHoraPasada = false;
+                    try {
+                        Time horaTime = c.getHora();
+                        String horaStr = horaTime.toString().substring(0, 5); // Formato HH:mm
+                        LocalTime hora = LocalTime.parse(horaStr);
+                        horaFormateada = hora.format(timeFormatter12h).toLowerCase();
+                        
+                        // Verificar si la hora ya pasó
+                        if (c.getFecha().equals(fechaActual.format(dateFormatter))) {
+                            esHoraPasada = hora.isBefore(horaActual);
+                        }
+                    } catch (Exception e) {
+                        horaFormateada = c.getHora().toString();
+                    }
         %>
             <tr>
                 <td><%= c.getIdCita() %></td>
                 <td><%= c.getFecha() %></td>
-                <td><%= c.getHora() %></td>
-                <td><%= c.getVeterinario() %></td> <%-- Usa getVeterinario() para el nombre del veterinario --%>
-                <td><%= c.getMotivo() %></td> <%-- Asegúrate de que este dato venga de la DB --%>
+                <td class="hora-am-pm <%= esHoraPasada ? "hora-pasada" : "" %>" title="<%= esHoraPasada ? "Esta hora ya ha pasado" : "" %>">
+                    <%= horaFormateada %>
+                </td>
+                <td><%= c.getVeterinario() %></td>
+                <td><%= c.getMotivo() %></td>
                 <td><%= c.getEstado() %></td>
             </tr>
         <%
@@ -150,16 +175,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Menú hamburguesa (si aplica, no está en tu HTML actual, pero lo dejé si lo tenías)
-    var hamburger = document.getElementById('hamburger');
-    if (hamburger) {
-        hamburger.addEventListener('click', function() {
-            this.classList.toggle('open');
-            var navLinks = document.getElementById('nav-links');
-            if (navLinks) navLinks.classList.toggle('open');
-        });
-    }
-
     // Abrir sidebar perfil
     var verPerfilBtn = document.getElementById('verPerfilBtn');
     if (verPerfilBtn) {
@@ -183,12 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname.toLowerCase();
     navLinks.forEach(link => {
         const href = link.getAttribute('href').toLowerCase();
-        // Ajustado para que "Citas agendadas" (historialdecitas.jsp) también marque su link si lo tuvieras en el navbar principal.
-        // Si no tienes un link directo en el navbar principal para "Citas agendadas", puedes omitir esta parte.
-        if (path.includes('historialdecitas')) {
-            // Ejemplo: si tienes un enlace directo en el navbar para "Citas agendadas"
-            // link.classList.add('active-link');
-        } else if (path.includes('nosotros') && href.includes('nosotros')) {
+        if (path.includes('nosotros') && href.includes('nosotros')) {
             link.classList.add('active-link');
         } else if (path.includes('servicios') && href.includes('servicios')) {
             link.classList.add('active-link');
