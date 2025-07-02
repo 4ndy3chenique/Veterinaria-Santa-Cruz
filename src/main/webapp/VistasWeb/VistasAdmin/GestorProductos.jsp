@@ -85,9 +85,9 @@
                     </form>
 
                     <% if (!mostrarInactivos) { %>
-                    <a href="ProductoServlet?accion=listarInactivos" class="btn btn-secundario">Ver Inactivos</a>
+                    <a href="ProductoServlet?accion=listarInactivos" class="btn btn-agregar">Ver Inactivos</a>
                     <% } else { %>
-                    <a href="ProductoServlet?accion=listar" class="btn btn-secundario">Ver Activos</a>
+                    <a href="ProductoServlet?accion=listar" class="btn btn-agregar">Ver Activos</a>
                     <% } %>
                     <button class="btn btn-agregar" onclick="abrirModal('modalAgregarProducto')">Agregar Producto</button>
                 </div>
