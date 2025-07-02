@@ -92,7 +92,7 @@
                     <button class="btn btn-agregar" onclick="abrirModal('modalAgregarProducto')">Agregar Producto</button>
                 </div>
             </div>
-            <table>
+            <table class="tabla-clientes">
                 <thead>
                     <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr>
                 </thead>
