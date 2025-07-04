@@ -15,52 +15,6 @@
     <link rel="stylesheet" href="<%= request.getContextPath()%>/css/ModoNoche-Sidebar.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/GestorCitas.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            padding-left: 78px; /* Ancho por defecto del sidebar minimizado */
-            transition: all 0.2s ease;
-        }
-        .sidebar.close ~ body {
-             padding-left: 250px; /* Ancho del sidebar expandido */
-        }
-        .home {
-            position: relative;
-            left: 78px;
-            width: calc(100% - 78px);
-            transition: all 0.2s ease;
-            padding: 20px; /* Espaciado dentro del contenido principal */
-        }
-        .sidebar.close ~ .home {
-            left: 250px;
-            width: calc(100% - 250px);
-        }
-        .table-container {
-            margin-top: 20px;
-        }
-        /* Estilos adicionales si deseas ocultar o mostrar secciones */
-        .hidden {
-            display: none;
-        }
-        /* Estilos para el formulario de edici�n */
-        .edit-form-container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 30px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .edit-form-container h3 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #3aafa9;
-            font-weight: 600;
-        }
-        .form-label {
-            font-weight: 500;
-        }
-    </style>
 </head>
 <body>
     <%-- INICIO DEL C�DIGO DEL MEN� LATERAL (SIDEBAR) --%>
@@ -75,7 +29,6 @@
                     <span class="profession">Veterinaria Santa Cruz</span>
                 </div>
             </div>
-             <i class='bx bx-chevron-right toggle'></i>
         </header>
 
         <div class="menu-bar">
@@ -97,22 +50,13 @@
                         <a href="<%= request.getContextPath()%>/UsuarioCitaRecepServlet?accion=listarCitaUsuarios">
                             <i class='bx bx-calendar-alt icon'></i><span class="text nav-text">Citas de Usuarios</span></a>
                     </li>
-                     <li class="nav-link">
-                        <a href="#">
-                            <i class='bx bx-wallet icon'></i>
-                            <span class="text nav-text">Pagos</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="bottom-content">
-                <li class="">
+                    <li class="nav-link">
                     <a href="<%= request.getContextPath()%>/LogoutServlet">
-                        <i class='bx bx-log-out icon'></i>
-                        <span class="text nav-text">Salir</span>
+                        <i class='bx bx-log-out icon'></i><span class="text">Salir</span>
                     </a>
                 </li>
+                </ul>
+            </div>
                 <li class="mode">
                     <div class="sun-moon">
                         <i class='bx bx-moon icon moon'></i>
@@ -131,7 +75,7 @@
     <main>  
     <%-- CONTENIDO PRINCIPAL DE LA P�GINA DE GESTI�N DE CITAS DE USUARIO --%>
     <section class="home">
-        <div class="text">Gesti�n de Citas de Usuarios</div>
+        
 
         <%-- Mensaje de notificaci�n --%>
         <% if (request.getAttribute("mensaje") != null) { %>
@@ -150,22 +94,25 @@
             // Mostrar la tabla de listado por defecto o si se especific� "listar" o b�squeda
             if ("listar".equals(modo) || modo == null || "buscar".equals(modo) || "buscarMedianteID".equals(modo)) {
         %>
-            <div class="mb-3">
-                <%-- Formulario de B�squeda por ID --%>
-                <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET" style="max-width: 300px;">
-                    <input type="hidden" name="accion" value="buscarMedianteID">
-                    <input class="form-control me-2" type="text" placeholder="Buscar por ID de Cita" name="id">
-                    <button class="btn btn-outline-info" type="submit">Buscar por ID</button>
-                </form>
+            <div class="header-actions">
+                <h1>Gestión Citas Usuarios</h1>
+               <div class="acciones">
+                       <%-- Formulario de B�squeda por ID --%>
+                       <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET" style="max-width: 300px;">
+                           <input type="hidden" name="accion" value="buscarMedianteID">
+                           <input class="form-control me-2" type="text" placeholder="Buscar por ID de Cita" name="id">
+                           <button class="btn btn-outline-info" type="submit">Buscar por ID</button>
+                       </form>
 
-                <%-- Formulario de B�squeda General --%>
-                <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET">
-                    <input type="hidden" name="accion" value="buscar">
-                    <input class="form-control me-2" type="search" placeholder="Buscar por cliente, veterinario o estado" aria-label="Search" name="terminoBusqueda">
-                    <button class="btn btn-outline-primary" type="submit">Buscar</button>
-                </form>
-                
-                <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary mb-3">Mostrar Todas las Citas</a>
+                       <%-- Formulario de B�squeda General --%>
+                       <form class="d-flex mb-3" action="UsuarioCitaRecepServlet" method="GET">
+                           <input type="hidden" name="accion" value="buscar">
+                           <input class="form-control me-2" type="search" placeholder="Buscar por cliente, veterinario o estado" aria-label="Search" name="terminoBusqueda">
+                           <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                       </form>
+
+                       <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary mb-3">Mostrar Todas las Citas</a>
+                </div>
             </div>
 
             <div class="tabla-citas">
