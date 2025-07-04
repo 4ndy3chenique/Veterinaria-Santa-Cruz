@@ -34,8 +34,7 @@ public class LoginServlet extends HttpServlet {
                     AdministradorDAO adminDAO = new AdministradorDAO();
                     Administrador admin = adminDAO.validarAdministrador(correo, contrasena);
                     if (admin != null) {
-                        session.setAttribute("usuario", admin);
-                        session.setAttribute("rol", "administrador");
+                        session.setAttribute("username", admin);  // Cambiado a "username"
                         redirectPage = request.getContextPath() + "/VistasWeb/VistasAdmin/AdminDash.jsp";
                     }
                     break;
@@ -44,8 +43,7 @@ public class LoginServlet extends HttpServlet {
                     RecepcionistaDAO recepDAO = new RecepcionistaDAO();
                     Recepcionista recepcionista = recepDAO.validarRecepcionista(correo, contrasena);
                     if (recepcionista != null) {
-                        session.setAttribute("usuario", recepcionista);
-                        session.setAttribute("rol", "recepcionista");
+                        session.setAttribute("recepcionista", recepcionista);  // Cambiado a "recepcionista"
                         redirectPage = request.getContextPath() + "/VistasWeb/VistasRecep/RecepDash.jsp";
                     }
                     break;
@@ -54,15 +52,12 @@ public class LoginServlet extends HttpServlet {
                     UsuarioClienteDAO clienteDAO = new UsuarioClienteDAO();
                     UsuarioCliente cliente = clienteDAO.validarUsuario(correo, contrasena);
                     if (cliente != null) {
-                        session.setAttribute("usuario", cliente);
-                        session.setAttribute("rol", "cliente");
-                        // Redirige al indexCliente.jsp
+                        session.setAttribute("usuario", cliente);  // Este se mantiene
                         redirectPage = request.getContextPath() + "/VistasWeb/VistasCliente/indexCliente.jsp";
                     }
                     break;
 
                 default:
-                    // Unknown role
                     redirectPage = "index.jsp?errorLogin=1";
                     break;
             }

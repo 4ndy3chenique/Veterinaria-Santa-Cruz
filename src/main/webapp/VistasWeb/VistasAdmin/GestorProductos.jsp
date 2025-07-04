@@ -1,9 +1,11 @@
+<%@ include file="/proteger.jsp" %>
 <%@ page import="java.util.List" %>
 <%@ page import="Modelo.Producto" %>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="ModeloDAO.ProveedorDAO" %>
 <%@ page import="Modelo.Conexion" %>
 <%@ page import="Modelo.Proveedor" %>
-<%@ page contentType="text/html" pageEncoding="UTF-8" %>
+
 <%
     java.sql.Connection conexion = Conexion.getConnection();
     ProveedorDAO proveedorDAO = new ProveedorDAO(conexion);

@@ -1,4 +1,5 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ include file="/proteger.jsp" %>
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -36,7 +37,7 @@
                 <li class="nav-link">
                     <a href="<%= request.getContextPath()%>/CitaServlet"><i class='bx bxs-calendar icon'></i><span class="text">Citas</span></a>
                 </li>
-                <li class="nav-link"><a href="${pageContext.request.contextPath}/VistasWeb/VistasRecep/GestionCitasUsuario.jsp">
+                <li class="nav-link"><a href="${pageContext.request.contextPath}/UsuarioCitaRecepServlet">
                         <i class='bx bx-calendar-alt icon'></i><span class="text">Citas de Usuarios</span></a></li>
                 <li class="nav-link">
                     <a href="<%= request.getContextPath()%>/LogoutServlet">

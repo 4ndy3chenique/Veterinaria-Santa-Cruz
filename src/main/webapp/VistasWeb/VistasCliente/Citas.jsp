@@ -1,23 +1,25 @@
+<%@ include file="/proteger.jsp" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.LocalTime" %>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="Modelo.UsuarioCliente" %>
 <%@ page import="java.util.List" %>
 <%@ page import="Modelo.Veterinario" %>
-<%-- No es estrictamente necesario importar UsuarioCitas aquÌ a menos que vayas a instanciarlo o usar sus mÈtodos directamente en el JSP --%>
+<%-- No es estrictamente necesario importar UsuarioCitas aqu√≠ a menos que vayas a instanciarlo o usar sus m√©todos directamente en el JSP --%>
 <%-- <%@ page import="Modelo.UsuarioCitas" %> --%>
 
 <%
-    // Obtener el objeto usuario de la sesiÛn
+    // Obtener el objeto usuario de la sesi√≥n
     UsuarioCliente usuarioObj = (UsuarioCliente) session.getAttribute("usuario");
     String usuarioNombre = (usuarioObj != null && usuarioObj.getNombre() != null) ? usuarioObj.getNombre() : ""; // Renombrado para claridad
     String mensaje = request.getParameter("mensaje");
 
-    // Fecha y hora actuales para validaciÛn en el cliente y valores mÌnimos
+    // Fecha y hora actuales para validaci√≥n en el cliente y valores m√≠nimos
     LocalDate fechaActual = LocalDate.now();
     LocalTime horaActual = LocalTime.now();
 
     // Obtener la lista de veterinarios del request (pasada por el servlet)
-    // Aseg˙rate del cast correcto si el tipo genÈrico es importante
+    // Aseg√∫rate del cast correcto si el tipo gen√©rico es importante
     List<Veterinario> listaVeterinarios = (List<Veterinario>) request.getAttribute("listaVeterinarios");
 %>
 <!DOCTYPE html>
@@ -100,11 +102,11 @@
     if (mensaje != null) {
         if ("registrado".equals(mensaje)) {
 %>
-            <div class="alert-success">°Cita registrada correctamente!</div>
+            <div class="alert-success">¬°Cita registrada correctamente!</div>
 <%
         } else if ("error_registro".equals(mensaje)) {
 %>
-            <div class="alert-error">Error al registrar la cita. Por favor, intÈntalo de nuevo.</div>
+            <div class="alert-error">Error al registrar la cita. Por favor, int√©ntalo de nuevo.</div>
 <%
         } else if ("veterinario_no_encontrado".equals(mensaje)) { // Mensaje corregido
 %>
@@ -112,15 +114,15 @@
 <%
         } else if ("formato_invalido".equals(mensaje)) {
 %>
-            <div class="alert-error">Error: Formato de fecha u hora inv·lido.</div>
+            <div class="alert-error">Error: Formato de fecha u hora inv√°lido.</div>
 <%
         } else if ("error_formato_numero".equals(mensaje)) {
 %>
-            <div class="alert-error">Error: Datos numÈricos inv·lidos (ID de veterinario).</div>
+            <div class="alert-error">Error: Datos num√©ricos inv√°lidos (ID de veterinario).</div>
 <%
         } else if ("error_inesperado".equals(mensaje)) {
 %>
-            <div class="alert-error">Se produjo un error inesperado. Por favor, intente de nuevo m·s tarde.</div>
+            <div class="alert-error">Se produjo un error inesperado. Por favor, intente de nuevo m√°s tarde.</div>
 <%
         } else if ("fecha_hora_pasada".equals(mensaje)) {
 %>
@@ -134,14 +136,14 @@
     <h3>Registrar Nueva Cita</h3>
     <form id="formCita" action="${pageContext.request.contextPath}/UsuarioCitasServlet" method="post" onsubmit="return validarFechaHora()">
         <input type="hidden" name="accion" value="registrar">
-        <%-- El idCliente ya se obtiene de la sesiÛn en el Servlet, este hidden input es redundante para el registro
-             pero si lo quieres mantener por si acaso, no causa daÒo. --%>
+        <%-- El idCliente ya se obtiene de la sesi√≥n en el Servlet, este hidden input es redundante para el registro
+             pero si lo quieres mantener por si acaso, no causa da√±o. --%>
         <%-- <input type="hidden" name="idCliente" value="<%= usuarioObj != null ? usuarioObj.getIdUsuario() : "" %>"> --%>
 
         <label for="nombreCliente">Cliente:</label>
-        <%-- Este campo es solo para visualizaciÛn, ya que el ID se obtiene de la sesiÛn en el Servlet --%>
+        <%-- Este campo es solo para visualizaci√≥n, ya que el ID se obtiene de la sesi√≥n en el Servlet --%>
         <input type="text" id="nombreCliente" name="nombreClienteDisplay" value="<%= usuarioNombre %>" required readonly />
-        <small class="form-text text-muted">Este es tu nombre de usuario. Tu ID de cliente se gestiona autom·ticamente.</small>
+        <small class="form-text text-muted">Este es tu nombre de usuario. Tu ID de cliente se gestiona autom√°ticamente.</small>
 
         <label for="fecha">Fecha:</label>
         <input type="date" id="fecha" name="fecha" min="<%= fechaActual %>" required />
@@ -155,11 +157,11 @@
         <select name="idVeterinario" id="idVeterinario" required>
             <option value="">-- Seleccione un veterinario --</option>
             <%
-                // Eliminar los comentarios de depuraciÛn que imprimen en el HTML final
+                // Eliminar los comentarios de depuraci√≥n que imprimen en el HTML final
                 // if (listaVeterinarios == null) {
                 //     out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios es NULL</option>");
                 // } else if (listaVeterinarios.isEmpty()) {
-                //     out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios est· VACÕA</option>");
+                //     out.println("<option value=\"\" disabled>DEBUG JSP: listaVeterinarios est√° VAC√çA</option>");
                 // } else {
                 //     out.println("<option value=\"\" disabled>DEBUG JSP: " + listaVeterinarios.size() + " veterinarios encontrados</option>");
                 // }
@@ -195,7 +197,7 @@
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/MiPerfil.jsp">Mi perfil</a>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/historialdecompras.jsp">Historial de compras/servicios</a>
     <a href="${pageContext.request.contextPath}/VistasWeb/VistasCliente/historialdecitas.jsp">Citas agendadas</a>
-    <a href="${pageContext.request.contextPath}/LogoutServlet">Cerrar sesiÛn</a>
+    <a href="${pageContext.request.contextPath}/LogoutServlet">Cerrar sesi√≥n</a>
 </div>
 <div id="sidebarOverlay"></div>
 
@@ -210,7 +212,7 @@
         this.classList.remove('active');
     });
 
-    // ValidaciÛn de fecha y hora en el lado del cliente
+    // Validaci√≥n de fecha y hora en el lado del cliente
     function validarFechaHora() {
         const fechaInput = document.getElementById('fecha');
         const horaInput = document.getElementById('hora');
@@ -218,10 +220,10 @@
         const errorHora = document.getElementById('errorHora');
 
         const hoy = new Date();
-        // Normalizar la fecha de hoy a YYYY-MM-DD para comparaciÛn
+        // Normalizar la fecha de hoy a YYYY-MM-DD para comparaci√≥n
         const hoySoloFecha = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const fechaSeleccionada = new Date(fechaInput.value);
-        // Normalizar la fecha seleccionada a YYYY-MM-DD para comparaciÛn
+        // Normalizar la fecha seleccionada a YYYY-MM-DD para comparaci√≥n
         const fechaSeleccionadaSoloFecha = new Date(fechaSeleccionada.getFullYear(), fechaSeleccionada.getMonth(), fechaSeleccionada.getDate());
 
         errorFecha.style.display = 'none';
@@ -256,7 +258,7 @@
         return true;
     }
 
-    // Establecer la fecha mÌnima para el input de fecha (hoy) al cargar la p·gina
+    // Establecer la fecha m√≠nima para el input de fecha (hoy) al cargar la p√°gina
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         const year = today.getFullYear();
