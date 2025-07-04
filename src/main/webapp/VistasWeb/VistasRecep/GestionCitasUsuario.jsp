@@ -13,6 +13,7 @@
     <title>Gesti�n de Citas de Usuarios - VeterinariaSantaCruz</title>
     <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath()%>/css/ModoNoche-Sidebar.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/GestorCitas.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -127,7 +128,7 @@
         </div>
     </nav>
     <%-- FIN DEL C�DIGO DEL MEN� LATERAL (SIDEBAR) --%>
-
+    <main>  
     <%-- CONTENIDO PRINCIPAL DE LA P�GINA DE GESTI�N DE CITAS DE USUARIO --%>
     <section class="home">
         <div class="text">Gesti�n de Citas de Usuarios</div>
@@ -167,9 +168,9 @@
                 <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary mb-3">Mostrar Todas las Citas</a>
             </div>
 
-            <div class="table-container">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-dark">
+            <div class="tabla-citas">
+                <table class="tabla-citas th">
+                    <thead>
                         <tr>
                             <th>ID Cita</th>
                             <th>Cliente</th>
@@ -289,7 +290,7 @@
             } // Fin de if "editar" o "ver"
         %>
     </section>
-
+</main>
     <%-- Scripts para el modo noche y sidebar --%>
     <script src="<%= request.getContextPath()%>/Js/JsAdmin/ModoNoche-Sidebar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
