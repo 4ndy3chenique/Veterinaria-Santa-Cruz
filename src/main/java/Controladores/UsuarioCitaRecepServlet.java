@@ -1,7 +1,7 @@
 package Controladores;
 
-import Modelo.UsuarioCitas; // Tu modelo de vista de citas extendida
-import ModeloDAO.UsuarioCitaRecepDAO; // El DAO que opera sobre este modelo
+import Modelo.UsuarioCitas;
+import ModeloDAO.UsuarioCitaRecepDAO;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -16,19 +16,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.sql.Date; 
+import java.sql.Date;
 import java.sql.Time;
+import java.text.ParseException; // Importa para manejar excepciones de parseo de fecha/hora
+import java.text.SimpleDateFormat; // Importa para formatear fecha/hora
 
-// Configuración del servlet para Jakarta EE
+
 @WebServlet(name = "UsuarioCitaRecepServlet", urlPatterns = {"/UsuarioCitaRecepServlet"})
 public class UsuarioCitaRecepServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(UsuarioCitaRecepServlet.class.getName());
-    
-    // ¡AJUSTADO! La única vista para gestionar citas de usuario será GestionCitasUsuario.jsp
-    String gestionCitasUsuarioJSP = "VistasWeb/VistasRecep/GestionCitasUsuario.jsp"; 
 
-    UsuarioCitaRecepDAO dao = new UsuarioCitaRecepDAO(); 
+    String gestionCitasUsuarioJSP = "VistasWeb/VistasRecep/GestionCitasUsuario.jsp";
+
+    UsuarioCitaRecepDAO dao = new UsuarioCitaRecepDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -51,7 +52,7 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String acceso = "";
-        String action = request.getParameter("accion"); 
+        String action = request.getParameter("accion");
 
         if (action == null) {
             action = "listarCitaUsuarios"; // Acción por defecto
@@ -60,7 +61,7 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
         switch (action) {
             case "listarCitaUsuarios":
                 List<UsuarioCitas> citas = dao.listarCitasConDetalles();
-                request.setAttribute("citas", citas); 
+                request.setAttribute("citas", citas);
                 request.setAttribute("modo", "listar"); // Para que el JSP sepa qué sección mostrar
                 acceso = gestionCitasUsuarioJSP;
                 break;
@@ -72,10 +73,10 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
                     if (citaEncontrada != null) {
                         List<UsuarioCitas> resultados = new ArrayList<>();
                         resultados.add(citaEncontrada);
-                        request.setAttribute("citas", resultados); 
+                        request.setAttribute("citas", resultados);
                         request.setAttribute("mensajeBusqueda", "Cita encontrada por ID.");
                     } else {
-                        request.setAttribute("citas", new ArrayList<UsuarioCitas>()); 
+                        request.setAttribute("citas", new ArrayList<UsuarioCitas>());
                         request.setAttribute("mensajeBusqueda", "Cita con ID " + idBuscar + " no encontrada.");
                     }
                     request.setAttribute("modo", "listar"); // Mostrar la tabla de resultados
@@ -88,17 +89,20 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
                     acceso = gestionCitasUsuarioJSP;
                 }
                 break;
-
-            case "EliminarCitaUsuario":
+            
+            // CORRECCIÓN 1: El nombre de la acción debe coincidir con el JSP (accion=eliminar)
+            case "eliminar": 
                 try {
                     int idEliminar = Integer.parseInt(request.getParameter("id"));
-                    int resultadoEliminar = dao.eliminarCita(idEliminar); 
-                    if (resultadoEliminar > 0) {
+                    int resultadoEliminar = dao.eliminarCita(idEliminar);
+                    if (resultadoEliminar == 1) { // Asumiendo que 1 significa éxito
                         request.setAttribute("mensaje", "Cita eliminada correctamente.");
+                    } else if (resultadoEliminar == 0) {
+                        request.setAttribute("mensaje", "Cita no encontrada o no se pudo eliminar.");
                     } else if (resultadoEliminar == -1) {
-                        request.setAttribute("mensaje", "Cita no encontrada o no se pudo eliminar (SP).");
+                         request.setAttribute("mensaje", "Error SQL al eliminar la cita.");
                     } else {
-                        request.setAttribute("mensaje", "Error al eliminar la cita.");
+                        request.setAttribute("mensaje", "Error inesperado al eliminar la cita.");
                     }
                 } catch (NumberFormatException e) {
                     LOGGER.log(Level.WARNING, "ID de eliminación inválido: " + request.getParameter("id"), e);
@@ -114,12 +118,13 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
                 acceso = gestionCitasUsuarioJSP;
                 break;
 
-            case "EditarCitaUsuario":
+            // CORRECCIÓN 2: El nombre de la acción debe coincidir con el JSP (accion=editar)
+            case "editar": 
                 try {
                     int idEditar = Integer.parseInt(request.getParameter("id"));
                     UsuarioCitas citaParaEditar = dao.obtenerCitaConDetallesPorId(idEditar);
                     if (citaParaEditar != null) {
-                        request.setAttribute("cita", citaParaEditar); 
+                        request.setAttribute("cita", citaParaEditar);
                         request.setAttribute("modo", "editar"); // Para que el JSP muestre el formulario de edición
                     } else {
                         request.setAttribute("mensaje", "Cita a editar no encontrada.");
@@ -134,6 +139,34 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
                     acceso = gestionCitasUsuarioJSP;
                 }
                 break;
+                
+            // NUEVO CASE: Para la acción de actualizar estado desde los dropdowns
+            case "actualizarEstado":
+                try {
+                    int idCitaEstado = Integer.parseInt(request.getParameter("id"));
+                    String nuevoEstado = request.getParameter("estado");
+                    int resultadoEstado = dao.actualizarEstadoCita(idCitaEstado, nuevoEstado);
+                    if (resultadoEstado == 1) { // Asumiendo que 1 significa éxito en el SP
+                        request.setAttribute("mensaje", "Estado de la cita actualizado correctamente.");
+                    } else if (resultadoEstado == 0) {
+                         request.setAttribute("mensaje", "Cita no encontrada para actualizar estado.");
+                    } else { // resultadoEstado == -1 para error SQL
+                        request.setAttribute("mensaje", "Error al actualizar el estado de la cita.");
+                    }
+                } catch (NumberFormatException e) {
+                    LOGGER.log(Level.WARNING, "ID de cita inválido para actualizar estado: " + request.getParameter("id"), e);
+                    request.setAttribute("mensaje", "ID de cita inválido para actualizar estado.");
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error inesperado al actualizar estado de cita: " + e.getMessage(), e);
+                    request.setAttribute("mensaje", "Ocurrió un error inesperado al actualizar el estado de la cita.");
+                }
+                // Después de actualizar el estado, redirige a la lista
+                List<UsuarioCitas> citasDespuesEstado = dao.listarCitasConDetalles();
+                request.setAttribute("citas", citasDespuesEstado);
+                request.setAttribute("modo", "listar");
+                acceso = gestionCitasUsuarioJSP;
+                break;
+
 
             case "buscar": // Búsqueda general
                 String terminoBusqueda = request.getParameter("terminoBusqueda");
@@ -167,29 +200,53 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
 
         if ("guardarEdicion".equals(action)) {
             try {
+                // Recuperar todos los parámetros del formulario de edición
                 int idCita = Integer.parseInt(request.getParameter("idCita"));
                 String fechaStr = request.getParameter("fecha");
                 String horaStr = request.getParameter("hora");
+                String veterinarioNombre = request.getParameter("veterinario"); // Nombre del veterinario
+                String motivo = request.getParameter("motivo");
                 String estado = request.getParameter("estado");
+                // Recuperar idVeterinario (campo oculto en el JSP)
+                int idVeterinario = Integer.parseInt(request.getParameter("idVeterinario"));
 
-                // *** IMPORTANTE: Aquí necesitas un DAO para la tabla 'Citas' ***
-                // Para simplificar, si NO tienes un CitaDAO separado,
-                // este UsuarioCitaRecepServlet NO puede realizar la actualización real.
-                // Podrías manejar un mensaje de éxito/error simulado o redirigir a un error.
-                
-                // Simulación de actualización para fines de demostración si no hay CitaDAO
-                boolean exitoActualizacion = true; // Cambiar a false para simular un fallo
-                
-                if (exitoActualizacion) {
-                    request.setAttribute("mensaje", "Cita con ID " + idCita + " actualizada (simulado).");
-                } else {
-                    request.setAttribute("mensaje", "Error al actualizar la cita con ID " + idCita + " (simulado).");
+                // Convertir String a java.sql.Date y java.sql.Time
+                Date fechaSQL = null;
+                Time horaSQL = null;
+
+                if (fechaStr != null && !fechaStr.isEmpty()) {
+                    fechaSQL = Date.valueOf(fechaStr); // Directamente desde yyyy-MM-dd
                 }
-                LOGGER.log(Level.INFO, "Simulando actualización de cita: " + idCita);
+                if (horaStr != null && !horaStr.isEmpty()) {
+                    horaSQL = Time.valueOf(horaStr + ":00"); // Añadir segundos si no vienen para Time.valueOf
+                }
+
+                // Crear el objeto UsuarioCitas con los datos actualizados
+                UsuarioCitas citaActualizada = new UsuarioCitas();
+                citaActualizada.setIdCita(idCita);
+                citaActualizada.setFecha(fechaSQL);
+                citaActualizada.setHora(horaSQL);
+                citaActualizada.setIdVeterinario(idVeterinario); // ¡Importante!
+                citaActualizada.setVeterinario(veterinarioNombre); // ¡Importante!
+                citaActualizada.setMotivo(motivo);
+                citaActualizada.setEstado(estado);
+
+                // Llamar al DAO para realizar la actualización
+                boolean exitoActualizacion = dao.actualizarCita(citaActualizada);
+
+                if (exitoActualizacion) {
+                    request.setAttribute("mensaje", "Cita con ID " + idCita + " actualizada correctamente.");
+                } else {
+                    request.setAttribute("mensaje", "Error al actualizar la cita con ID " + idCita + ".");
+                }
+                LOGGER.log(Level.INFO, "Intento de actualización de cita: " + idCita + " - Éxito: " + exitoActualizacion);
 
             } catch (NumberFormatException e) {
                 LOGGER.log(Level.SEVERE, "Error de formato de número al guardar edición de cita: " + e.getMessage(), e);
                 request.setAttribute("mensaje", "Datos numéricos inválidos para la actualización.");
+            } catch (IllegalArgumentException e) { // Captura errores de Date.valueOf o Time.valueOf
+                LOGGER.log(Level.SEVERE, "Error de formato de fecha/hora al guardar edición de cita: " + e.getMessage(), e);
+                request.setAttribute("mensaje", "Formato de fecha u hora inválido. Use AAAA-MM-DD y HH:MM.");
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error inesperado al guardar edición de cita: " + e.getMessage(), e);
                 request.setAttribute("mensaje", "Ocurrió un error inesperado al actualizar la cita.");
@@ -197,9 +254,9 @@ public class UsuarioCitaRecepServlet extends HttpServlet {
         } else {
             request.setAttribute("mensaje", "Acción POST no reconocida o no soportada.");
         }
-        
+
         // Siempre redirigir a listar después de una operación POST
-        doGet(request, response); 
+        doGet(request, response);
     }
 
     @Override
