@@ -60,6 +60,11 @@
                         <i class='bx bxs-calendar icon'></i><span class="text">Citas</span></a></li>
                 <li class="nav-link"><a href="${pageContext.request.contextPath}/VistasWeb/VistasRecep/GestionCitasUsuario.jsp">
                         <i class='bx bx-calendar-alt icon'></i><span class="text">Citas de Usuarios</span></a></li>
+                        <li class="nav-link">
+                    <a href="${pageContext.request.contextPath}/VistasWeb/VistasRecep/GestionProductosR.jsp">
+                        <i class='bx bx-package icon'></i><span class="text">Productos</span>
+                    </a>
+                </li>
                                     <li class="nav-link"><a href="${pageContext.request.contextPath}/LogoutServlet"><i class='bx bx-log-out icon'>
                     
                                 </i><span class="text">Salir</span></a></li>
