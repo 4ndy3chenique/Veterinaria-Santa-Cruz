@@ -39,12 +39,13 @@ public class LoginServlet extends HttpServlet {
                     }
                     break;
 
-                case "Recepcionista":
+                 case "Recepcionista":
                     RecepcionistaDAO recepDAO = new RecepcionistaDAO();
                     Recepcionista recepcionista = recepDAO.validarRecepcionista(correo, contrasena);
                     if (recepcionista != null) {
-                        session.setAttribute("recepcionista", recepcionista);  // Cambiado a "recepcionista"
-                        redirectPage = request.getContextPath() + "/VistasWeb/VistasRecep/RecepDash.jsp";
+                        session.setAttribute("recepcionista", recepcionista);
+                        // ¡Aquí está el cambio! Redirige a ClienteRServlet
+                        redirectPage = request.getContextPath() + "/ClienteRServlet";
                     }
                     break;
 

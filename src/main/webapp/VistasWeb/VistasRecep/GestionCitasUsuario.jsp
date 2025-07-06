@@ -47,7 +47,7 @@
                         <a href="<%= request.getContextPath()%>/CitaServlet"><i class='bx bxs-calendar icon'></i><span class="text nav-text">Citas</span></a>
                     </li>
                     <li class="nav-link active"> <%-- Resaltado para la p gina actual --%>
-                        <a href="<%= request.getContextPath()%>/UsuarioCitaRecepServlet?accion=listarCitaUsuarios">
+                        <a href="${pageContext.request.contextPath}/UsuarioCitaRecepServlet">
                             <i class='bx bx-calendar-alt icon'></i><span class="text nav-text">Citas de Usuarios</span></a>
                     </li>
                     <li class="nav-link">
@@ -151,7 +151,7 @@
                             <td>
                                 <%-- Botones de Acciones --%>
                                 <div class="d-grid gap-2">
-                                    <a href="UsuarioCitaRecepServlet?accion=editar&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">Editar</a>
+                                    <a href="UsuarioCitaRecepServlet?accion=editar&id=<%= cita.getIdCita() %>" class="btn btn-warning btn-sm">VER</a>
                                     <%-- El bot n "Ver" puede ser opcional si el editar ya muestra toda la info en readonly --%>
                                     <%-- <a href="UsuarioCitaRecepServlet?accion=ver&id=<%= cita.getIdCita() %>" class="btn btn-info btn-sm">Ver</a> --%>
                                     <a href="UsuarioCitaRecepServlet?accion=eliminar&id=<%= cita.getIdCita() %>" class="btn btn-danger btn-sm" onclick="return confirm(' Est s seguro de que quieres eliminar esta cita?');">Eliminar</a>
@@ -233,7 +233,7 @@
                         </div>
 
                         <% if ("editar".equals(modo)) { %>
-                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        <button type="submit" class="btn btn-primary">Volver</button>
                         <% } %>
                         <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
                     </form>

@@ -36,13 +36,8 @@
                                 <a href="<%= request.getContextPath()%>/AdminClienteServlet"><i class='bx bxs-calendar icon'>                           
                             </i><span class="text">Clientes</span></a>
                     </li>   
-     <li class="nav-link">
-    <a href="<%= request.getContextPath()%>/AdminEmpleadoServlet"><i class='bx bx-group icon'></i><span class="text">Empleados</span></a>
-</li>
-<li class="nav-link">
-                        <a href="<%= request.getContextPath()%>/CitaServlet">
-                            <i class='bx bx-package icon'></i><span class="text">Citas</span>
-                        </a>
+                    <li class="nav-link">
+                        <a href="<%= request.getContextPath()%>/AdminEmpleadoServlet"><i class='bx bx-group icon'></i><span class="text">Empleados</span></a>
                     </li>
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/ProductoServlet?accion=listar&idProveedor=1">
