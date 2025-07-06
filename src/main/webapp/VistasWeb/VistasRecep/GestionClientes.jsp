@@ -4,8 +4,7 @@
 <%@ page import="Modelo.Cliente" %>
 <%@ page import="Modelo.Veterinario" %>
 
-<%
-    List<Cliente> listaClientes = (List<Cliente>) request.getAttribute("listaClientes");
+<%    List<Cliente> listaClientes = (List<Cliente>) request.getAttribute("listaClientes");
     Cliente clienteSel = (Cliente) request.getAttribute("clienteSeleccionado");
     List<Veterinario> listaVeterinarios = (List<Veterinario>) request.getAttribute("listaVeterinarios");
 
@@ -74,8 +73,8 @@
                 justify-content: center; /* Centers them in the column if there's extra space */
                 align-items: center;
             }
-            
-            
+
+
         </style>
     </head>
     <body>
@@ -94,33 +93,41 @@
 
             <div class="menu-bar">
                 <ul class="menu-links">
-                    <li class="nav-link">
-                        <a href="<%= request.getContextPath()%>/VistasWeb/VistasRecep/RecepDash.jsp">
-                            <i class='bx bx-home-alt icon'></i><span class="text">General</span>
-                        </a>
-                    </li>
+
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/ClienteRServlet">
                             <i class='bx bx-group icon'></i><span class="text">Clientes</span></a>
                     </li>
+
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/CitaServlet">
                             <i class='bx bxs-calendar icon'></i><span class="text">Citas</span></a>
                     </li>
-                    <li class="nav-link"><a href="${pageContext.request.contextPath}/UsuarioCitaRecepServlet">
-                        <i class='bx bx-calendar-alt icon'></i><span class="text">Citas de Usuarios</span></a></li>
-                        <li class="nav-link">
-                    <a href="${pageContext.request.contextPath}/VistasWeb/VistasRecep/GestionProductosR.jsp">
-                        <i class='bx bx-package icon'></i><span class="text">Productos</span>
-                    </a>
-                </li>
+
+                    <li class="nav-link">
+                        <a href="${pageContext.request.contextPath}/UsuarioCitaRecepServlet">
+                            <i class='bx bx-calendar-alt icon'></i><span class="text">Citas de Usuarios</span></a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="${pageContext.request.contextPath}/ProductoRecepServlet">
+                            <i class='bx bx-package icon'></i><span class="text">Productos</span></a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="${pageContext.request.contextPath}/HistorialVentaServlet">
+                            <i class='bx bx-receipt icon'></i><span class="text">Historial de Ventas</span></a>
+                    </li>
+
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/LogoutServlet">
                             <i class='bx bx-log-out icon'></i><span class="text">Salir</span>
                         </a>
                     </li>
+
                 </ul>
             </div>
+
         </nav>
 
         <main>
@@ -157,7 +164,7 @@
                 </thead>
                 <tbody>
                     <% if (listaClientes != null && !listaClientes.isEmpty()) {
-                        for (Cliente c : listaClientes) {%>
+                            for (Cliente c : listaClientes) {%>
                     <tr>
                         <td><%= c.getIdCliente()%></td>
                         <td><%= c.getNombre()%></td>
@@ -174,7 +181,7 @@
                         </td>
                     </tr>
                     <% }
-                } else { %>
+                    } else { %>
                     <tr><td colspan="7">No hay clientes registrados.</td></tr>
                     <% } %>
                 </tbody>
@@ -270,11 +277,11 @@
                             <label for="idVeterinario">Veterinario:</label>
                             <select name="idVeterinario" id="idVeterinario" required>
                                 <option value="">-- Seleccione un veterinario --</option>
-                                <% for (Veterinario vet : listaVeterinarios) { %>
-                                    <option value="<%= vet.getIdVeterinario() %>">
-                                        Dr(a). <%= vet.getNombre() %> <%= vet.getApellido() %> - <%= vet.getEspecialidad() %>
-                                    </option>
-                                <% } %>
+                                <% for (Veterinario vet : listaVeterinarios) {%>
+                                <option value="<%= vet.getIdVeterinario()%>">
+                                    Dr(a). <%= vet.getNombre()%> <%= vet.getApellido()%> - <%= vet.getEspecialidad()%>
+                                </option>
+                                <% }%>
                             </select>
 
                         </div>

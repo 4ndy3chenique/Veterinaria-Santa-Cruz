@@ -52,6 +52,7 @@ public class LoginServlet extends HttpServlet {
                     Recepcionista recepcionista = recepDAO.validarRecepcionista(correo, contrasena);
                     if (recepcionista != null) {
                         session.setAttribute("recepcionista", recepcionista);
+                        session.setAttribute("idRecepcionista", recepcionista.getIdRecepcionista());  // 🔷 clave para tus ventas
                         String redirectUrl = request.getContextPath() + "/ClienteRServlet";
                         jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
                     } else {

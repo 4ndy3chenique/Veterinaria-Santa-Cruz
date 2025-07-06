@@ -1,0 +1,54 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f8f8f8;
+}
+
+main {
+    margin-left: 280px; /* ancho del sidebar */
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.header form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.header select, .header button {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.tabla-ventas {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.tabla-ventas th, .tabla-ventas td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.tabla-ventas th {
+    background-color: #f2f2f2;
+}
+
+.tabla-ventas tbody tr:hover {
+    background-color: #f9f9f9;
+}
