@@ -2,7 +2,7 @@ package Controladores;
 
 import Modelo.Veterinario;
 import Modelo.Recepcionista;
-import Modelo.Conexion;
+import Modelo.Conexion; // Aunque no se usa directamente aquí, se mantiene por si es necesario para otros métodos
 import ModeloDAO.RecepcionistaDAO;
 import ModeloDAO.VeterinarioDAO;
 import jakarta.servlet.ServletException;
@@ -11,39 +11,54 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.sql.Connection; // Se mantiene por si es necesario para otros métodos
+import java.sql.SQLException; // Se mantiene por si es necesario para otros métodos
+import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level; // Añadido para logging
-import java.util.logging.Logger; // Añadido para logging
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+// Se eliminan las importaciones de Jackson
 
 @WebServlet(name = "AdminEmpleadoServlet", urlPatterns = {"/AdminEmpleadoServlet"})
 public class AdminEmpleadoServlet extends HttpServlet {
 
-    private static final Logger LOGGER = Logger.getLogger(AdminEmpleadoServlet.class.getName()); // Añadido para logging
+    private static final Logger LOGGER = Logger.getLogger(AdminEmpleadoServlet.class.getName());
+    // Se elimina la instancia de ObjectMapper
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        // Se elimina la inicialización de ObjectMapper
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String accion = request.getParameter("accion");
-        String tipoEmpleado = request.getParameter("tipo"); // Aunque no se usa directamente aquí, se mantiene.
 
         if (accion == null || accion.isEmpty()) {
             listarEmpleados(request, response);
         } else {
             switch (accion) {
                 case "ver":
-                    mostrarEmpleado(request, response);
+                    obtenerDatosEmpleadoJson(request, response);
                     break;
                 case "editar":
-                    mostrarFormularioEdicion(request, response);
+                    // Si el JSP no usa AJAX para precargar el formulario de edición,
+                    // esta acción podría redirigir a un JSP de formulario con los datos.
+                    // Actualmente, el JSP usa 'ver' para AJAX.
+                    listarEmpleados(request, response);
                     break;
                 case "eliminar":
                     eliminarEmpleado(request, response);
                     break;
-                case "nuevo": // Añadir caso para mostrar formulario de nuevo empleado
+                case "nuevo":
                     mostrarFormularioNuevo(request, response);
+                    break;
+                case "listar": // Esta acción ahora también manejará la búsqueda
+                    listarEmpleados(request, response);
                     break;
                 default:
                     listarEmpleados(request, response);
@@ -55,6 +70,8 @@ public class AdminEmpleadoServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+
         String accion = request.getParameter("accion");
         String tipoEmpleado = request.getParameter("tipoEmpleado");
 
@@ -63,8 +80,11 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 case "agregar":
                     agregarEmpleado(request, response, tipoEmpleado);
                     break;
-                case "editar":
+                case "actualizar":
                     actualizarEmpleado(request, response, tipoEmpleado);
+                    break;
+                case "eliminar":
+                    eliminarEmpleado(request, response);
                     break;
                 default:
                     listarEmpleados(request, response);
@@ -77,91 +97,104 @@ public class AdminEmpleadoServlet extends HttpServlet {
     private void listarEmpleados(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        Connection conexion = null;
-        conexion = Conexion.getConnection(); // Si los DAOs manejan su propia conexión, no necesitas cerrar aquí.
-        // Si los DAOs reciben la conexión, debes cerrarla aquí.
-        // Para simplificar y evitar problemas de cierre prematuro, los DAOs deben obtener y cerrar su propia conexión.
-        // Por lo tanto, quitar la llamada a cerrarConexion(conexion) si los DAOs se instancian sin pasar la conexión.
-        // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
-        if (conexion == null) {
-            LOGGER.log(Level.SEVERE, "Conexión a la BD nula en listarEmpleados.");
-            manejarError(request, response, "Error interno del servidor: No se pudo conectar a la base de datos.");
-            return;
+        String searchQuery = request.getParameter("query");
+        String activeTab = request.getParameter("currentTab"); // Obtener la pestaña activa desde la URL
+
+        // Si no se especifica una pestaña activa, por defecto es 'veterinarios'
+        if (activeTab == null || activeTab.isEmpty()) {
+            activeTab = "veterinarios";
         }
-        // Es mejor instanciar los DAOs sin pasar la conexión, y que cada DAO la obtenga y cierre.
-        // Si el DAO no tiene un constructor que acepta Connection, esto causará un error.
-        // Asumo que ya has corregido los DAOs para que NO tomen Connection en el constructor.
-        // Si tus DAOs *sí* tienen constructor con Connection, déjalos como estaban, pero
-        // asegúrate de que el cierre de la conexión se haga solo UNA VEZ al final del servlet.
-        
-        // --- Opción 1: DAOs manejan su propia conexión (recomendado si no usas Pool de conexiones) ---
-        VeterinarioDAO veterinarioDAO = new VeterinarioDAO(); // Sin pasar conexión
-        List<Veterinario> listaVeterinarios = veterinarioDAO.listarVeterinarios();
-        request.setAttribute("listaVeterinarios", listaVeterinarios);
-        RecepcionistaDAO recepcionistaDAO = new RecepcionistaDAO(); // Sin pasar conexión
-        List<Recepcionista> listaRecepcionistas = recepcionistaDAO.listarRecepcionistas();
-        request.setAttribute("listaRecepcionistas", listaRecepcionistas);
-        
-        // --- Si tus DAOs AÚN toman una Connection en el constructor, entonces: ---
-        // VeterinarioDAO veterinarioDAO = new VeterinarioDAO(conexion);
-        // List<Veterinario> listaVeterinarios = veterinarioDAO.listarVeterinarios();
-        // request.setAttribute("listaVeterinarios", listaVeterinarios);
-        
-        // RecepcionistaDAO recepcionistaDAO = new RecepcionistaDAO(conexion);
-        // List<Recepcionista> listaRecepcionistas = recepcionistaDAO.listarRecepcionistas();
-        // request.setAttribute("listaRecepcionistas", listaRecepcionistas);
-        // --- Fin de Opción 2 ---
+        request.setAttribute("activeTab", activeTab); // Pasar la pestaña activa al JSP
+
+        VeterinarioDAO veterinarioDAO = new VeterinarioDAO();
+        List<Veterinario> allVeterinarios = veterinarioDAO.listarVeterinarios();
+        List<Veterinario> filteredVeterinarios = new ArrayList<>();
+
+        RecepcionistaDAO recepcionistaDAO = new RecepcionistaDAO();
+        List<Recepcionista> allRecepcionistas = recepcionistaDAO.listarRecepcionistas();
+        List<Recepcionista> filteredRecepcionistas = new ArrayList<>();
+
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            String lowerCaseQuery = searchQuery.trim().toLowerCase();
+
+            // Filtrar veterinarios
+            for (Veterinario vet : allVeterinarios) {
+                if ( (vet.getNombre() != null && vet.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
+                     (vet.getApellido() != null && vet.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
+                     (vet.getDni() != null && vet.getDni().toLowerCase().contains(lowerCaseQuery)) ||
+                     (vet.getNumero() != null && vet.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
+                     (vet.getEspecialidad() != null && vet.getEspecialidad().toLowerCase().contains(lowerCaseQuery)) ) {
+                    filteredVeterinarios.add(vet);
+                }
+            }
+
+            // Filtrar recepcionistas
+            for (Recepcionista rec : allRecepcionistas) {
+                if ( (rec.getNombre() != null && rec.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
+                     (rec.getApellido() != null && rec.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
+                     (rec.getDni() != null && rec.getDni().toLowerCase().contains(lowerCaseQuery)) ||
+                     (rec.getNumero() != null && rec.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
+                     (rec.getCorreo() != null && rec.getCorreo().toLowerCase().contains(lowerCaseQuery)) ) {
+                    filteredRecepcionistas.add(rec);
+                }
+            }
+            request.setAttribute("searchQuery", searchQuery); // Mantener el término de búsqueda en el input del JSP
+        } else {
+            filteredVeterinarios = allVeterinarios;
+            filteredRecepcionistas = allRecepcionistas;
+        }
+
+        request.setAttribute("listaVeterinarios", filteredVeterinarios);
+        request.setAttribute("listaRecepcionistas", filteredRecepcionistas);
+
         request.getRequestDispatcher("/VistasWeb/VistasAdmin/ListadoEmpleados.jsp")
                 .forward(request, response);
     }
 
-    private void mostrarEmpleado(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String tipo = request.getParameter("tipo");
-        int id = Integer.parseInt(request.getParameter("id"));
-        Connection conexion = null; // No es necesario aquí si los DAOs manejan su propia conexión
-
-        try {
-            // conexion = Conexion.getConnection(); // Comentado si los DAOs manejan su propia conexión
-
-            if ("veterinario".equals(tipo)) {
-                VeterinarioDAO dao = new VeterinarioDAO(); // Sin pasar conexión
-                Veterinario vet = dao.obtenerVeterinarioPorId(id); // Asumiendo que el método es obtenerVeterinarioPorId
-                if (vet != null) {
-                    request.setAttribute("empleado", vet);
-                    request.setAttribute("tipoEmpleado", "veterinario");
-                } else {
-                    manejarError(request, response, "Veterinario no encontrado con ID: " + id);
-                    return;
-                }
-            } else { // Asume que el otro tipo es recepcionista
-                RecepcionistaDAO dao = new RecepcionistaDAO(); // Sin pasar conexión
-                Recepcionista rec = dao.obtenerRecepcionistaPorId(id); // Asumiendo que el método es obtenerRecepcionistaPorId
-                 if (rec != null) {
-                    request.setAttribute("empleado", rec);
-                    request.setAttribute("tipoEmpleado", "recepcionista");
-                } else {
-                    manejarError(request, response, "Recepcionista no encontrado con ID: " + id);
-                    return;
-                }
-            }
-
-            request.getRequestDispatcher("/VistasWeb/VistasAdmin/DetalleEmpleado.jsp")
-                   .forward(request, response);
-
-        } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "ID de empleado inválido: " + request.getParameter("id"), e);
-            manejarError(request, response, "ID de empleado inválido.");
-        } catch (Exception e) { // Capturar Exception general si SQLException no es suficiente
-            LOGGER.log(Level.SEVERE, "Error al mostrar empleado: " + e.getMessage(), e);
-            manejarError(request, response, "Error al mostrar empleado: " + e.getMessage());
-        } finally {
-            // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
+    // Método auxiliar para escapar cadenas para JSON (se vuelve a incluir)
+    private String escapeJsonString(String text) {
+        if (text == null) {
+            return "null";
         }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            switch (c) {
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    if (c < ' ' || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                    break;
+            }
+        }
+        return sb.toString();
     }
 
-    private void mostrarFormularioEdicion(HttpServletRequest request, HttpServletResponse response)
+    // Método para obtener datos del empleado y enviarlos como JSON (construido manualmente)
+    private void obtenerDatosEmpleadoJson(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String tipo = request.getParameter("tipo");
@@ -169,67 +202,88 @@ public class AdminEmpleadoServlet extends HttpServlet {
         try {
             id = Integer.parseInt(request.getParameter("id"));
         } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "ID inválido para edición: " + request.getParameter("id"), e);
-            manejarError(request, response, "ID de empleado inválido para edición.");
+            LOGGER.log(Level.WARNING, "ID de empleado inválido al intentar obtener datos JSON: " + request.getParameter("id"), e);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"" + escapeJsonString("ID de empleado inválido.") + "\"}");
             return;
         }
 
-        Connection conexion = null; // No es necesario aquí si los DAOs manejan su propia conexión
+        StringBuilder jsonResponse = new StringBuilder();
 
         try {
-            // conexion = Conexion.getConnection(); // Comentado si los DAOs manejan su propia conexión
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
             if ("veterinario".equals(tipo)) {
-                VeterinarioDAO dao = new VeterinarioDAO(); // Sin pasar conexión
-                Veterinario vet = dao.obtenerVeterinarioPorId(id); // Usar obtenerVeterinarioPorId
+                VeterinarioDAO dao = new VeterinarioDAO();
+                Veterinario vet = dao.obtenerVeterinarioPorId(id);
                 if (vet != null) {
-                    request.setAttribute("empleado", vet);
-                    request.setAttribute("tipoEmpleado", "veterinario");
+                    jsonResponse.append("{");
+                    jsonResponse.append("\"idVeterinario\": ").append(vet.getIdVeterinario()).append(",");
+                    jsonResponse.append("\"nombre\": \"").append(escapeJsonString(vet.getNombre())).append("\",");
+                    jsonResponse.append("\"apellido\": \"").append(escapeJsonString(vet.getApellido())).append("\",");
+                    jsonResponse.append("\"numero\": \"").append(escapeJsonString(vet.getNumero())).append("\",");
+                    jsonResponse.append("\"dni\": \"").append(escapeJsonString(vet.getDni())).append("\",");
+                    jsonResponse.append("\"especialidad\": \"").append(escapeJsonString(vet.getEspecialidad())).append("\"");
+                    jsonResponse.append("}");
                 } else {
-                    manejarError(request, response, "Veterinario no encontrado para edición con ID: " + id);
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"" + escapeJsonString("Veterinario no encontrado con ID: " + id) + "\"}");
                     return;
                 }
-            } else { // Asume que el otro tipo es recepcionista
-                RecepcionistaDAO dao = new RecepcionistaDAO(); // Sin pasar conexión
-                Recepcionista rec = dao.obtenerRecepcionistaPorId(id); // Usar obtenerRecepcionistaPorId
+            } else if ("recepcionista".equals(tipo)) {
+                RecepcionistaDAO dao = new RecepcionistaDAO();
+                Recepcionista rec = dao.obtenerRecepcionistaPorId(id);
                 if (rec != null) {
-                    request.setAttribute("empleado", rec);
-                    request.setAttribute("tipoEmpleado", "recepcionista");
+                    jsonResponse.append("{");
+                    jsonResponse.append("\"idRecepcionista\": ").append(rec.getIdRecepcionista()).append(",");
+                    jsonResponse.append("\"nombre\": \"").append(escapeJsonString(rec.getNombre())).append("\",");
+                    jsonResponse.append("\"apellido\": \"").append(escapeJsonString(rec.getApellido())).append("\",");
+                    jsonResponse.append("\"numero\": \"").append(escapeJsonString(rec.getNumero())).append("\",");
+                    jsonResponse.append("\"dni\": \"").append(escapeJsonString(rec.getDni())).append("\",");
+                    jsonResponse.append("\"correo\": \"").append(escapeJsonString(rec.getCorreo())).append("\"");
+                    // No incluir la contraseña aquí por seguridad
+                    jsonResponse.append("}");
                 } else {
-                    manejarError(request, response, "Recepcionista no encontrado para edición con ID: " + id);
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"" + escapeJsonString("Recepcionista no encontrado con ID: " + id) + "\"}");
                     return;
                 }
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"" + escapeJsonString("Tipo de empleado no válido.") + "\"}");
+                return;
             }
 
-            request.setAttribute("accion", "editar");
-            request.getRequestDispatcher("/VistasWeb/VistasAdmin/FormularioEmpleado.jsp")
-                   .forward(request, response);
+            response.getWriter().write(jsonResponse.toString());
 
-        } catch (Exception e) { // Capturar Exception general si SQLException no es suficiente
-            LOGGER.log(Level.SEVERE, "Error al cargar formulario de edición: " + e.getMessage(), e);
-            manejarError(request, response, "Error al cargar formulario: " + e.getMessage());
-        } finally {
-            // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener datos JSON del empleado (ID: " + id + ", Tipo: " + tipo + "): " + e.getMessage(), e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"" + escapeJsonString("Error interno del servidor al obtener datos del empleado: " + e.getMessage()) + "\"}");
         }
     }
-    
-    // Nuevo método para mostrar el formulario de agregar
+
     private void mostrarFormularioNuevo(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setAttribute("accion", "agregar"); // Para que el formulario sepa que es una operación de agregar
-        request.setAttribute("tipoEmpleado", request.getParameter("tipo")); // Para preseleccionar el tipo
+        request.setAttribute("accion", "agregar");
+        request.setAttribute("tipoEmpleado", request.getParameter("tipo"));
         request.getRequestDispatcher("/VistasWeb/VistasAdmin/FormularioEmpleado.jsp").forward(request, response);
     }
 
     private void agregarEmpleado(HttpServletRequest request, HttpServletResponse response, String tipoEmpleado)
             throws ServletException, IOException {
 
-        // Connection conexion = null; // No es necesario si los DAOs manejan su propia conexión
-        try {
-            // conexion = Conexion.getConnection(); // Comentado si los DAOs manejan su propia conexión
-            // if (conexion == null) { ... } // Ya no es necesario aquí
+        boolean exito = false;
+        String mensaje = "";
+        String error = "";
 
-            boolean exito = false;
+        try {
             if ("veterinario".equals(tipoEmpleado)) {
                 Veterinario vet = new Veterinario();
                 vet.setNombre(request.getParameter("nombre"));
@@ -238,63 +292,74 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 vet.setNumero(request.getParameter("numero"));
                 vet.setEspecialidad(request.getParameter("especialidad"));
 
-                VeterinarioDAO dao = new VeterinarioDAO(); // Sin pasar conexión
+                VeterinarioDAO dao = new VeterinarioDAO();
                 exito = dao.agregarVeterinario(vet);
 
                 if (exito) {
-                    request.setAttribute("mensaje", "Veterinario agregado exitosamente");
+                    mensaje = "Veterinario agregado exitosamente.";
                 } else {
-                    request.setAttribute("error", "No se pudo agregar el veterinario. Verifique los datos o si el DNI ya existe.");
+                    error = "No se pudo agregar el veterinario. Verifique los datos o si el DNI ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al agregar veterinario: " + vet.getDni());
                 }
-            } else if ("recepcionista".equals(tipoEmpleado)) { // Añadir else if para recepcionista
+            } else if ("recepcionista".equals(tipoEmpleado)) {
                 Recepcionista rec = new Recepcionista();
                 rec.setNombre(request.getParameter("nombre"));
                 rec.setApellido(request.getParameter("apellido"));
                 rec.setDni(request.getParameter("dni"));
                 rec.setNumero(request.getParameter("numero"));
                 rec.setCorreo(request.getParameter("correo"));
-                rec.setContrasena(request.getParameter("contrasena")); // Asegúrate de hashear la contraseña en un entorno real
 
-                RecepcionistaDAO dao = new RecepcionistaDAO(); // Sin pasar conexión
+                String contrasenaPlana = request.getParameter("contrasena");
+                // **** IMPORTANTE: HASHEAR LA CONTRASEÑA ANTES DE ENVIARLA AL DAO ****
+                // Si usas BCrypt, sería algo como:
+                // String hashedPassword = BCrypt.hashpw(contrasenaPlana, BCrypt.gensalt());
+                // rec.setContrasena(hashedPassword);
+                // Por ahora, se envía en texto plano (¡CAMBIAR ESTO!).
+                rec.setContrasena(contrasenaPlana); // ¡ADVERTENCIA DE SEGURIDAD!
+
+                RecepcionistaDAO dao = new RecepcionistaDAO();
                 exito = dao.agregarRecepcionista(rec);
 
                 if (exito) {
-                    request.setAttribute("mensaje", "Recepcionista agregado exitosamente");
+                    mensaje = "Recepcionista agregado exitosamente.";
                 } else {
-                    request.setAttribute("error", "No se pudo agregar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.");
+                    error = "No se pudo agregar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al agregar recepcionista: " + rec.getDni() + " / " + rec.getCorreo());
                 }
             } else {
-                request.setAttribute("error", "Tipo de empleado no válido para agregar.");
+                error = "Tipo de empleado no válido para agregar.";
             }
-
-            listarEmpleados(request, response); // Redirige a la lista de empleados después de agregar
-
-        } catch (Exception e) { // Capturar Exception general si SQLException no es suficiente
-            LOGGER.log(Level.SEVERE, "Error al agregar empleado: " + e.getMessage(), e);
-            manejarError(request, response, "Error al agregar empleado: " + e.getMessage());
-        } finally {
-            // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al agregar empleado (" + tipoEmpleado + "): " + e.getMessage(), e);
+            error = "Error interno del servidor al agregar empleado: " + e.getMessage();
         }
+
+        if (!mensaje.isEmpty()) {
+            request.setAttribute("mensaje", mensaje);
+        }
+        if (!error.isEmpty()) {
+            request.setAttribute("error", error);
+        }
+        listarEmpleados(request, response);
     }
 
     private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response, String tipoEmpleado)
             throws ServletException, IOException {
 
-        // Connection conexion = null; // No es necesario si los DAOs manejan su propia conexión
+        boolean exito = false;
+        String mensaje = "";
+        String error = "";
+        int id = 0;
+
         try {
-            // conexion = Conexion.getConnection(); // Comentado si los DAOs manejan su propia conexión
-            // if (conexion == null) { ... } // Ya no es necesario aquí
+            id = Integer.parseInt(request.getParameter("idEmpleado"));
+        } catch (NumberFormatException e) {
+            LOGGER.log(Level.WARNING, "ID inválido para actualización: " + request.getParameter("idEmpleado"), e);
+            manejarError(request, response, "ID de empleado inválido para actualización.");
+            return;
+        }
 
-            int id = 0;
-            try {
-                id = Integer.parseInt(request.getParameter("idEmpleado")); // Asegúrate de que el nombre del parámetro sea correcto
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "ID inválido para actualización: " + request.getParameter("idEmpleado"), e);
-                manejarError(request, response, "ID de empleado inválido para actualización.");
-                return;
-            }
-
-            boolean exito = false;
+        try {
             if ("veterinario".equals(tipoEmpleado)) {
                 Veterinario vet = new Veterinario();
                 vet.setIdVeterinario(id);
@@ -304,15 +369,16 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 vet.setNumero(request.getParameter("numero"));
                 vet.setEspecialidad(request.getParameter("especialidad"));
 
-                VeterinarioDAO dao = new VeterinarioDAO(); // Sin pasar conexión
+                VeterinarioDAO dao = new VeterinarioDAO();
                 exito = dao.actualizarVeterinario(vet);
 
                 if (exito) {
-                    request.setAttribute("mensaje", "Veterinario actualizado exitosamente");
+                    mensaje = "Veterinario actualizado exitosamente.";
                 } else {
-                    request.setAttribute("error", "No se pudo actualizar el veterinario.");
+                    error = "No se pudo actualizar el veterinario. Verifique los datos o si el DNI ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al actualizar veterinario ID: " + id);
                 }
-            } else if ("recepcionista".equals(tipoEmpleado)) { // Añadir else if para recepcionista
+            } else if ("recepcionista".equals(tipoEmpleado)) {
                 Recepcionista rec = new Recepcionista();
                 rec.setIdRecepcionista(id);
                 rec.setNombre(request.getParameter("nombre"));
@@ -321,36 +387,46 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 rec.setNumero(request.getParameter("numero"));
                 rec.setCorreo(request.getParameter("correo"));
 
-                // Solo actualizar contraseña si se proporcionó una nueva
-                String nuevaContrasena = request.getParameter("contrasena");
-                if (nuevaContrasena != null && !nuevaContrasena.isEmpty()) {
-                    rec.setContrasena(nuevaContrasena); // Asegúrate de hashear la contraseña
-                }
-                
-                RecepcionistaDAO dao = new RecepcionistaDAO(); // Sin pasar conexión
+                RecepcionistaDAO dao = new RecepcionistaDAO();
                 exito = dao.actualizarRecepcionista(rec);
 
-                if (exito) {
-                    request.setAttribute("mensaje", "Recepcionista actualizado exitosamente");
-                } else {
-                    request.setAttribute("error", "No se pudo actualizar el recepcionista.");
+                String nuevaContrasenaPlana = request.getParameter("contrasena");
+                if (nuevaContrasenaPlana != null && !nuevaContrasenaPlana.trim().isEmpty()) {
+                    boolean contrasenaActualizada = dao.actualizarContrasenaRecepcionista(id, nuevaContrasenaPlana);
+                    if (contrasenaActualizada) {
+                        mensaje += " Contraseña actualizada.";
+                    } else {
+                        error += " No se pudo actualizar la contraseña.";
+                        LOGGER.log(Level.WARNING, "Fallo al actualizar contraseña de recepcionista ID: " + id);
+                    }
                 }
+
+                if (exito || (nuevaContrasenaPlana != null && !nuevaContrasenaPlana.trim().isEmpty() && exito)) {
+                    mensaje = (mensaje.isEmpty() ? "" : mensaje + " ") + "Recepcionista actualizado exitosamente.";
+                } else {
+                    error = (error.isEmpty() ? "" : error + " ") + "No se pudo actualizar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al actualizar recepcionista ID: " + id);
+                }
+
             } else {
-                request.setAttribute("error", "Tipo de empleado no válido para actualizar.");
+                error = "Tipo de empleado no válido para actualizar.";
             }
-
-            listarEmpleados(request, response); // Redirige a la lista después de actualizar
-
-        } catch (Exception e) { // Capturar Exception general si SQLException no es suficiente
-            LOGGER.log(Level.SEVERE, "Error al actualizar empleado: " + e.getMessage(), e);
-            manejarError(request, response, "Error al actualizar empleado: " + e.getMessage());
-        } finally {
-            // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al actualizar empleado (" + tipoEmpleado + ", ID: " + id + "): " + e.getMessage(), e);
+            error = "Error interno del servidor al actualizar empleado: " + e.getMessage();
         }
+
+        if (!mensaje.isEmpty()) {
+            request.setAttribute("mensaje", mensaje);
+        }
+        if (!error.isEmpty()) {
+            request.setAttribute("error", error);
+        }
+        listarEmpleados(request, response);
     }
 
-   private void eliminarEmpleado(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
+    private void eliminarEmpleado(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
         String tipo = request.getParameter("tipo");
         int id = 0;
@@ -359,43 +435,53 @@ public class AdminEmpleadoServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             LOGGER.log(Level.WARNING, "ID inválido para eliminación: " + request.getParameter("id"), e);
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("text/plain");
             response.getWriter().write("ID de empleado inválido.");
             return;
         }
 
-        // Connection conexion = null; // No es necesario si los DAOs manejan su propia conexión
+        boolean exito = false;
+        String mensajeRespuesta = "";
+        int statusCode = HttpServletResponse.SC_OK;
+
         try {
-            // conexion = Conexion.getConnection(); // Comentado si los DAOs manejan su propia conexión
-            // if (conexion == null) { ... } // Ya no es necesario aquí
-
-            boolean exito = false;
-
             if ("veterinario".equals(tipo)) {
-                VeterinarioDAO dao = new VeterinarioDAO(); // Sin pasar conexión
+                VeterinarioDAO dao = new VeterinarioDAO();
                 exito = dao.eliminarVeterinario(id);
-            } else if ("recepcionista".equals(tipo)) { // Añadir else if para recepcionista
-                RecepcionistaDAO dao = new RecepcionistaDAO(); // Sin pasar conexión
+                if (exito) {
+                    mensajeRespuesta = "Veterinario eliminado exitosamente.";
+                    LOGGER.log(Level.INFO, "Veterinario ID " + id + " eliminado exitosamente.");
+                } else {
+                    mensajeRespuesta = "No se pudo eliminar el veterinario. Puede que tenga registros asociados (ej. citas).";
+                    statusCode = HttpServletResponse.SC_CONFLICT;
+                    LOGGER.log(Level.WARNING, "Fallo al eliminar veterinario ID: " + id + ". Posiblemente por FK.");
+                }
+            } else if ("recepcionista".equals(tipo)) {
+                RecepcionistaDAO dao = new RecepcionistaDAO();
                 exito = dao.eliminarRecepcionista(id);
+                if (exito) {
+                    mensajeRespuesta = "Recepcionista eliminado exitosamente.";
+                    LOGGER.log(Level.INFO, "Recepcionista ID " + id + " eliminado exitosamente.");
+                } else {
+                    mensajeRespuesta = "No se pudo eliminar el recepcionista. Puede que tenga registros asociados (ej. citas, ventas).";
+                    statusCode = HttpServletResponse.SC_CONFLICT;
+                    LOGGER.log(Level.WARNING, "Fallo al eliminar recepcionista ID: " + id + ". Posiblemente por FK.");
+                }
             } else {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().write("Tipo de empleado no válido para eliminar.");
-                return;
+                mensajeRespuesta = "Tipo de empleado no válido para eliminar.";
+                statusCode = HttpServletResponse.SC_BAD_REQUEST;
+                LOGGER.log(Level.WARNING, "Intento de eliminar con tipo de empleado no válido: " + tipo);
             }
 
-            if (exito) {
-                response.setContentType("text/plain");
-                response.getWriter().write(tipo + " eliminado exitosamente");
-            } else {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.getWriter().write("No se pudo eliminar el " + tipo + ". Puede que tenga registros asociados.");
-            }
+            response.setStatus(statusCode);
+            response.setContentType("text/plain");
+            response.getWriter().write(mensajeRespuesta);
 
-        } catch (Exception e) { // Capturar Exception general si SQLException no es suficiente
-            LOGGER.log(Level.SEVERE, "Error al eliminar empleado: " + e.getMessage(), e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al eliminar empleado (" + tipo + ", ID: " + id + "): " + e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("Error al eliminar empleado: " + e.getMessage());
-        } finally {
-            // cerrarConexion(conexion); // Comentado si los DAOs manejan su propia conexión
+            response.setContentType("text/plain");
+            response.getWriter().write("Error interno del servidor al eliminar empleado: " + e.getMessage());
         }
     }
 
@@ -404,19 +490,4 @@ public class AdminEmpleadoServlet extends HttpServlet {
         request.setAttribute("error", mensaje);
         request.getRequestDispatcher("/error.jsp").forward(request, response);
     }
-
-    // Este método ya NO es necesario si los DAOs manejan su propia conexión
-    // Quítalo si tus DAOs obtienen y cierran la conexión internamente.
-    // Lo comento aquí para que lo decidas.
-    /*
-    private void cerrarConexion(Connection conexion) {
-        if (conexion != null) {
-            try {
-                conexion.close();
-            } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error al cerrar la conexión: " + e.getMessage(), e);
-            }
-        }
-    }
-    */
 }
