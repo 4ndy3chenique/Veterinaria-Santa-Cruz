@@ -180,4 +180,5 @@ public class ProductoDAO {
         p.setFechaRegistro(rs.getTimestamp("fecha_registro"));
         return p;
     }
+
 }

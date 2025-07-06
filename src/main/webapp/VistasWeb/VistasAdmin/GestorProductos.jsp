@@ -83,15 +83,19 @@
                         <input type="hidden" name="inactivos" value="true" />
                         <% }%>
                         <input type="text" name="busqueda" placeholder="Buscar producto..." value="<%= request.getParameter("busqueda") != null ? request.getParameter("busqueda") : ""%>" />
-                        <button type="submit">Buscar</button>
+                        <button type="submit" class="btn btn-agregar">Buscar</button>
                     </form>
 
-                    <% if (!mostrarInactivos) { %>
-                    <a href="ProductoServlet?accion=listarInactivos" class="btn btn-agregar">Ver Inactivos</a>
-                    <% } else { %>
-                    <a href="ProductoServlet?accion=listar" class="btn btn-agregar">Ver Activos</a>
-                    <% } %>
-                    <button class="btn btn-agregar" onclick="abrirModal('modalAgregarProducto')">Agregar Producto</button>
+                        <div class="acciones">
+                            <% if (!mostrarInactivos) { %>
+                            <a href="ProductoServlet?accion=listarInactivos" class="btn btn-agregar">Ver Inactivos</a>
+                            <% } else { %>
+                            <a href="ProductoServlet?accion=listar" class="btn btn-agregar">Ver Activos</a>
+                            <% }%>
+                            <button class="btn btn-agregar" onclick="abrirModal('modalAgregarProducto')">Agregar Producto</button>
+
+                            <a href="<%= request.getContextPath()%>/ProductoPdfServlet" class="btn btn-agregar" target="_blank">Generar Listado PDF</a>
+                        </div>
                 </div>
             </div>
             <table class="tabla-clientes">
