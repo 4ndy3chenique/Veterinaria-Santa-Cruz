@@ -1,4 +1,4 @@
-package ModeloDAO; // Asegúrate de que este paquete sea correcto según tu estructura de carpetas
+package ModeloDAO;
 
 import Modelo.Conexion;
 import Modelo.Recepcionista;
@@ -9,12 +9,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level; // Importar para logging
-import java.util.logging.Logger; // Importar para logging
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class RecepcionistaDAO {
 
-    // Usar Logger en lugar de System.err.println para una mejor gestión de logs
     private static final Logger LOGGER = Logger.getLogger(RecepcionistaDAO.class.getName());
 
     public RecepcionistaDAO() {
@@ -32,7 +31,7 @@ public class RecepcionistaDAO {
         try {
             conn = Conexion.getConnection();
             if (conn == null) {
-                 System.err.println("Error: No se pudo obtener la conexión a la base de datos en recepcionista.");
+                LOGGER.log(Level.SEVERE, "Error: No se pudo obtener la conexión a la base de datos en listarRecepcionistas. La conexión es nula.");
                 return listaRecepcionistas;
             }
 
@@ -45,28 +44,26 @@ public class RecepcionistaDAO {
                 rec.setNombre(rs.getString("R_Nombre"));
                 rec.setApellido(rs.getString("R_Apellido"));
                 rec.setNumero(rs.getString("R_Numero"));
-                rec.setDni(rs.getString("R_dni"));
+                rec.setDni(rs.getString("R_Dni")); // Correcto
                 rec.setCorreo(rs.getString("R_Correo"));
                 listaRecepcionistas.add(rec);
             }
         } catch (SQLException e) {
-            System.err.println("Error al listar recepcionistas: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error al listar recepcionistas: " + e.getMessage(), e);
         } finally {
             try {
                 if (rs != null) rs.close();
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-               System.err.println("Error al cerrar recursos en listarrecepcionista: " + e.getMessage());
-                e.printStackTrace();
+                LOGGER.log(Level.WARNING, "Error al cerrar recursos en listarRecepcionistas: " + e.getMessage(), e);
             }
         }
         return listaRecepcionistas;
     }
 
     public Recepcionista validarRecepcionista(String correo, String contrasena) {
-        String sql = "SELECT * FROM Recepcionista WHERE R_correo = ? AND R_Contrasena = ?";
+        String sql = "SELECT idRecepcionista, R_Nombre, R_Apellido, R_Numero, R_Dni, R_Correo, R_Contrasena FROM Recepcionista WHERE R_Correo = ? AND R_Contrasena = ?";
         Recepcionista recepcionista = null;
 
         try (Connection con = Conexion.getConnection();
@@ -88,15 +85,15 @@ public class RecepcionistaDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al validar recepcionista:");
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error al validar recepcionista:", e);
         }
         return recepcionista;
     }
 
     public Recepcionista obtenerRecepcionistaPorId(int id) {
         Recepcionista rec = null;
-        String sql = "SELECT idRecepcionista, nombre, apellido, numero, dni, correo FROM recepcionista WHERE idRecepcionista = ?";
+        // Se corrigieron los nombres de las columnas para que coincidan con el formato R_
+        String sql = "SELECT idRecepcionista, R_Nombre, R_Apellido, R_Numero, R_Dni, R_Correo FROM Recepcionista WHERE idRecepcionista = ?";
         Connection conn = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -116,11 +113,11 @@ public class RecepcionistaDAO {
             if (rs.next()) {
                 rec = new Recepcionista();
                 rec.setIdRecepcionista(rs.getInt("idRecepcionista"));
-                rec.setNombre(rs.getString("nombre"));
-                rec.setApellido(rs.getString("apellido"));
-                rec.setNumero(rs.getString("numero"));
-                rec.setDni(rs.getString("dni"));
-                rec.setCorreo(rs.getString("correo"));
+                rec.setNombre(rs.getString("R_Nombre")); // Corregido
+                rec.setApellido(rs.getString("R_Apellido")); // Corregido
+                rec.setNumero(rs.getString("R_Numero")); // Corregido
+                rec.setDni(rs.getString("R_Dni")); // ¡¡¡CORREGIDO AQUÍ!!! Antes decía "R.Dni"
+                rec.setCorreo(rs.getString("R_Correo")); // Corregido
                 LOGGER.log(Level.INFO, "Recepcionista encontrado: " + rec.getNombre() + " " + rec.getApellido());
             } else {
                 LOGGER.log(Level.INFO, "No se encontró recepcionista con ID: " + id);
@@ -140,7 +137,8 @@ public class RecepcionistaDAO {
     }
 
     public boolean agregarRecepcionista(Recepcionista rec) {
-        String sql = "INSERT INTO recepcionista (nombre, apellido, numero, dni, correo, contrasena) VALUES (?, ?, ?, ?, ?, ?)";
+        // Se corrigieron los nombres de las columnas para que coincidan con el formato R_
+        String sql = "INSERT INTO Recepcionista (R_Nombre, R_Apellido, R_Numero, R_Dni, R_Correo, R_Contrasena) VALUES (?, ?, ?, ?, ?, ?)";
         Connection conn = null;
         PreparedStatement ps = null;
         boolean exito = false;
@@ -159,7 +157,6 @@ public class RecepcionistaDAO {
             ps.setString(3, rec.getNumero());
             ps.setString(4, rec.getDni());
             ps.setString(5, rec.getCorreo());
-            // ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡
             // ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡ ADVERTENCIA DE SEGURIDAD CRÍTICA ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡
             // NUNCA, BAJO NINGUNA CIRCUNSTANCIA, ALMACENES CONTRASEÑAS EN TEXTO PLANO EN LA BASE DE DATOS.
             // Esto es una VULNERABILIDAD GRAVE que puede comprometer la seguridad de tus usuarios.
@@ -196,9 +193,7 @@ public class RecepcionistaDAO {
     }
 
     public boolean actualizarRecepcionista(Recepcionista rec) {
-        // No incluyas la contraseña en este UPDATE a menos que estés seguro de que siempre se actualizará aquí.
-        // Si la contraseña se actualiza, es mejor usar el método actualizarContrasenaRecepcionista.
-        String sql = "UPDATE recepcionista SET nombre=?, apellido=?, numero=?, dni=?, correo=? WHERE idRecepcionista=?";
+        String sql = "UPDATE Recepcionista SET R_Nombre=?, R_Apellido=?, R_Numero=?, R_Dni=?, R_Correo=? WHERE idRecepcionista=?";
         Connection conn = null;
         PreparedStatement ps = null;
         boolean exito = false;
@@ -246,7 +241,8 @@ public class RecepcionistaDAO {
 
     // Método específico para actualizar la contraseña (DEBE HASHEARSE)
     public boolean actualizarContrasenaRecepcionista(int idRecepcionista, String nuevaContrasena) {
-        String sql = "UPDATE recepcionista SET contrasena=? WHERE idRecepcionista=?";
+        // Se corrigió el nombre de la columna para que coincida con el formato R_
+        String sql = "UPDATE Recepcionista SET R_Contrasena=? WHERE idRecepcionista=?";
         Connection conn = null;
         PreparedStatement ps = null;
         boolean exito = false;
@@ -260,7 +256,6 @@ public class RecepcionistaDAO {
 
             LOGGER.log(Level.INFO, "Intentando actualizar contraseña para recepcionista ID: " + idRecepcionista);
             ps = conn.prepareStatement(sql);
-            // ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡
             // ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡ ADVERTENCIA DE SEGURIDAD CRÍTICA ¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡
             // NUNCA, BAJO NINGUNA CIRCUNSTANCIA, ALMACENES CONTRASEÑAS EN TEXTO PLANO EN LA BASE DE DATOS.
             // Esto es una VULNERABILIDAD GRAVE que puede comprometer la seguridad de tus usuarios.
@@ -293,7 +288,7 @@ public class RecepcionistaDAO {
     }
 
     public boolean eliminarRecepcionista(int id) {
-        String sql = "DELETE FROM recepcionista WHERE idRecepcionista = ?";
+        String sql = "DELETE FROM Recepcionista WHERE idRecepcionista = ?";
         Connection conn = null;
         PreparedStatement ps = null;
         boolean exito = false;
@@ -319,9 +314,9 @@ public class RecepcionistaDAO {
         } catch (SQLException e) {
             // Manejo de errores más específico para eliminar si hay claves foráneas
             if (e.getSQLState().startsWith("23")) { // SQLSTATE para violación de integridad (ej. foreign key constraint)
-                 LOGGER.log(Level.WARNING, "Error al eliminar recepcionista: Hay registros asociados (ej. citas, ventas). " + e.getMessage(), e);
+                LOGGER.log(Level.WARNING, "Error al eliminar recepcionista: Hay registros asociados (ej. citas, ventas). " + e.getMessage(), e);
             } else {
-                 LOGGER.log(Level.SEVERE, "Error al eliminar recepcionista: " + e.getMessage(), e);
+                LOGGER.log(Level.SEVERE, "Error al eliminar recepcionista: " + e.getMessage(), e);
             }
         } finally {
             try {

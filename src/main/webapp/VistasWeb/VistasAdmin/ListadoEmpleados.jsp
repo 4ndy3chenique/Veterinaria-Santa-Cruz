@@ -6,6 +6,51 @@
 <%
     List<Veterinario> listaVeterinarios = (List<Veterinario>) request.getAttribute("listaVeterinarios");
     List<Recepcionista> listaRecepcionistas = (List<Recepcionista>) request.getAttribute("listaRecepcionistas");
+
+    // Obtener mensajes de éxito o error del servlet
+    String mensajeExito = (String) request.getAttribute("mensaje");
+    String mensajeError = (String) request.getAttribute("error");
+    String searchQuery = (String) request.getAttribute("searchQuery"); // Obtener el término de búsqueda
+    String activeTab = (String) request.getAttribute("activeTab"); // Obtener la pestaña activa
+
+    // Función auxiliar para escapar cadenas de texto para JavaScript
+    // Más robusta: escapa backslashes, comillas simples, comillas dobles, saltos de línea y caracteres no ASCII, y </script>.
+    java.util.function.Function<String, String> escapeJsString = (text) -> {
+        if (text == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\\') {
+                sb.append("\\\\");
+            } else if (c == '\'') {
+                sb.append("\\'");
+            } else if (c == '"') { // ¡NUEVO! Escapar comillas dobles
+                sb.append("\\\"");
+            } else if (c == '\n') {
+                sb.append("\\n");
+            } else if (c == '\r') {
+                sb.append("\\r");
+            } else if (c == '<' && i + 7 <= text.length() && text.substring(i, i + 7).equalsIgnoreCase("</script>")) {
+                sb.append("<\\/script>"); // Escapar </script> para evitar cierre prematuro del script tag
+                i += 6; // Saltar los caracteres de "script>"
+            } else if (c < 32 || c > 126) { // Escapar caracteres de control y no ASCII como Unicode
+                sb.append(String.format("\\u%04x", (int) c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    };
+
+    // Función auxiliar para escapar cadenas de texto para atributos HTML
+    java.util.function.Function<String, String> escapeHtmlAttribute = (text) -> {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;") // HTML entity for single quote
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;");
+    };
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -16,6 +61,7 @@
         <link href="https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css" rel="stylesheet">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ModoNoche-Sidebar.css">
         <style>
+            /* Estilos CSS existentes */
             main {
                 margin-left: 280px;
                 padding: 20px;
@@ -93,6 +139,8 @@
                 text-decoration: none;
                 font-size: 14px;
                 transition: all 0.3s;
+                border: none;
+                cursor: pointer;
             }
             
             .btn-ver {
@@ -126,6 +174,47 @@
                 background-color: #45a049;
             }
             
+            /* Estilos para el nuevo botón PDF */
+            .btn-pdf {
+                display: inline-flex; /* Usar flexbox para alinear icono y texto */
+                align-items: center; /* Centrar verticalmente */
+                gap: 5px; /* Espacio entre icono y texto */
+                padding: 10px 15px;
+                background-color: #dc3545; /* Un rojo para PDF */
+                color: white;
+                border: none;
+                border-radius: 4px;
+                text-decoration: none;
+                margin-left: 10px; /* Espacio a la izquierda del botón de búsqueda */
+                font-weight: 500;
+                transition: background-color 0.3s ease;
+            }
+
+            .btn-pdf:hover {
+                background-color: #c82333; /* Un rojo más oscuro al pasar el ratón */
+            }
+
+            /* Estilos para el nuevo botón Excel */
+            .btn-excel {
+                display: inline-flex; /* Usar flexbox para alinear icono y texto */
+                align-items: center; /* Centrar verticalmente */
+                gap: 5px; /* Espacio entre icono y texto */
+                padding: 10px 15px;
+                background-color: #28a745; /* Un verde para Excel */
+                color: white;
+                border: none;
+                border-radius: 4px;
+                text-decoration: none;
+                margin-left: 10px; /* Espacio a la izquierda del botón PDF */
+                font-weight: 500;
+                transition: background-color 0.3s ease;
+            }
+
+            .btn-excel:hover {
+                background-color: #218838; /* Un verde más oscuro al pasar el ratón */
+            }
+
+
             /* Estilos para modo noche */
             body.modo-noche .tab-container {
                 background: #2d3748;
@@ -163,7 +252,7 @@
                 background-color: #4a5568;
             }
             
-            /* Modal */
+            /* Modal base */
             .modal {
                 display: none;
                 position: fixed;
@@ -173,15 +262,19 @@
                 width: 100%;
                 height: 100%;
                 background-color: rgba(0,0,0,0.5);
+                justify-content: center;
+                align-items: center;
             }
             
             .modal-content {
                 background-color: #fefefe;
-                margin: 5% auto;
+                margin: auto;
                 padding: 20px;
                 border-radius: 8px;
                 width: 50%;
                 max-width: 600px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                position: relative;
             }
             
             body.modo-noche .modal-content {
@@ -195,6 +288,9 @@
                 font-size: 28px;
                 font-weight: bold;
                 cursor: pointer;
+                position: absolute;
+                top: 10px;
+                right: 20px;
             }
             
             .close:hover {
@@ -254,10 +350,57 @@
                 color: white;
                 margin-right: 10px;
             }
+
+            /* Estilos específicos para el modal de confirmación/mensaje */
+            .modal-message-content {
+                text-align: center;
+            }
+
+            .modal-message-content h2 {
+                margin-bottom: 15px;
+            }
+
+            .modal-message-content p {
+                margin-bottom: 20px;
+                font-size: 1.1em;
+            }
+
+            .modal-message-content .btn-group {
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+            }
+
+            /* Estilos para la barra de búsqueda */
+            .search-bar {
+                margin-bottom: 20px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .search-bar form {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .search-bar input[type="text"] {
+                flex-grow: 1;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+
+            body.modo-noche .search-bar input[type="text"] {
+                background-color: #4a5568;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
         </style>
     </head>
     <body>
-       <!-- Sidebar Navigation -->
+        <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <header>
                 <div class="image-text">
@@ -279,12 +422,12 @@
                         </a>
                     </li>
                     <li class="nav-link">
-                                <a href="<%= request.getContextPath()%>/AdminClienteServlet"><i class='bx bxs-calendar icon'>                           
-                            </i><span class="text">Clientes</span></a>
+                        <a href="<%= request.getContextPath()%>/AdminClienteServlet"><i class='bx bxs-calendar icon'>                                
+                        </i><span class="text">Clientes</span></a>
                     </li>   
-     <li class="nav-link">
-    <a href="<%= request.getContextPath()%>/AdminEmpleadoServlet"><i class='bx bx-group icon'></i><span class="text">Empleados</span></a>
-</li>
+                    <li class="nav-link">
+                        <a href="<%= request.getContextPath()%>/AdminEmpleadoServlet"><i class='bx bx-group icon'></i><span class="text">Empleados</span></a>
+                    </li>
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/ProductoServlet?accion=listar&idProveedor=1">
                             <i class='bx bx-package icon'></i><span class="text">Productos</span>
@@ -316,6 +459,25 @@
                     <button class="tab-button" onclick="openTab(event, 'recepcionistas')">Recepcionistas</button>
                 </div>
                 
+                <!-- Barra de búsqueda única para ambas pestañas -->
+                <div class="search-bar">
+                    <form id="searchForm" action="${pageContext.request.contextPath}/AdminEmpleadoServlet" method="GET">
+                        <input type="hidden" name="accion" value="listar">
+                        <input type="hidden" name="currentTab" id="currentTabHidden" value="<%= activeTab != null ? escapeHtmlAttribute.apply(activeTab) : "veterinarios" %>">
+                        <input type="text" name="query" id="searchInput" placeholder="Buscar..." 
+                               value="<%= searchQuery != null ? escapeHtmlAttribute.apply(searchQuery) : "" %>">
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                    </form>
+                    <%-- Botón para generar reporte PDF --%>
+                    <a href="${pageContext.request.contextPath}/ReporteEmpleadosServlet" class="btn-pdf">
+                        <i class='bx bxs-file-pdf'></i> Generar Reporte PDF
+                    </a>
+                    <%-- Nuevo Botón para generar reporte Excel --%>
+                    <a href="${pageContext.request.contextPath}/ReporteEmpleadosExcelServlet" class="btn-excel">
+                        <i class='bx bxs-file-excel'></i> Generar Reporte Excel
+                    </a>
+                </div>
+
                 <!-- Contenido de pestaña Veterinarios -->
                 <div id="veterinarios" class="tab-content active">
                     <a href="#" class="btn-agregar" onclick="mostrarModalAgregar('veterinario')">
@@ -344,6 +506,8 @@
                                 <td class="acciones">
                                     <a href="#" class="btn-accion btn-editar" 
                                        onclick="mostrarModalEditar('veterinario', <%= v.getIdVeterinario() %>)">Editar</a>
+                                    <button class="btn-accion btn-eliminar" 
+                                            onclick="confirmarEliminar('veterinario', <%= v.getIdVeterinario() %>, '<%= escapeJsString.apply(v.getNombre() + " " + v.getApellido()) %>')">Eliminar</button>
                                 </td>
                             </tr>
                             <% }
@@ -384,6 +548,8 @@
                                 <td class="acciones">
                                     <a href="#" class="btn-accion btn-editar" 
                                        onclick="mostrarModalEditar('recepcionista', <%= r.getIdRecepcionista() %>)">Editar</a>
+                                    <button class="btn-accion btn-eliminar" 
+                                            onclick="confirmarEliminar('recepcionista', <%= r.getIdRecepcionista() %>, '<%= escapeJsString.apply(r.getNombre() + " " + r.getApellido()) %>')">Eliminar</button>
                                 </td>
                             </tr>
                             <% }
@@ -419,20 +585,20 @@
                     </div>
                     
                     <div class="form-group">
-    <label for="dni">DNI:</label>
-    <input type="text" id="dni" name="dni" required 
-           maxlength="10" 
-           pattern="[0-9]{8,10}" 
-           title="El DNI debe tener entre 8 y 10 dígitos numéricos">
-</div>
+                        <label for="dni">DNI:</label>
+                        <input type="text" id="dni" name="dni" required 
+                               maxlength="10" 
+                               pattern="[0-9]{8,10}" 
+                               title="El DNI debe tener entre 8 y 10 dígitos numéricos">
+                    </div>
 
-<div class="form-group">
-    <label for="numero">Teléfono:</label>
-    <input type="text" id="numero" name="numero" required 
-           maxlength="9" 
-           pattern="[0-9]{9}" 
-           title="El teléfono debe tener 9 dígitos numéricos">
-</div>
+                    <div class="form-group">
+                        <label for="numero">Teléfono:</label>
+                        <input type="text" id="numero" name="numero" required 
+                               maxlength="9" 
+                               pattern="[0-9]{9}" 
+                               title="El teléfono debe tener 9 dígitos numéricos">
+                    </div>
                     
                     <!-- Campos específicos para veterinario -->
                     <div id="especialidadGroup" class="form-group" style="display:none;">
@@ -448,7 +614,7 @@
                         </div>
                         <div class="form-group">
                             <label for="contrasena">Contraseña:</label>
-                            <input type="password" id="contrasena" name="contrasena">
+                            <input type="password" id="contrasena" name="contrasena" placeholder="Dejar vacío para no cambiar">
                         </div>
                     </div>
                     
@@ -460,7 +626,7 @@
             </div>
         </div>
         
-        <!-- Modal para ver detalles -->
+        <!-- Modal para ver detalles (se mantiene sin cambios significativos) -->
         <div id="modalVer" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="cerrarModalVer()">&times;</span>
@@ -473,11 +639,40 @@
                 </div>
             </div>
         </div>
+
+        <!-- Nuevo Modal de Confirmación -->
+        <div id="modalConfirmacion" class="modal">
+            <div class="modal-content modal-message-content">
+                <span class="close" onclick="cerrarModalConfirmacion()">&times;</span>
+                <h2>Confirmar Eliminación</h2>
+                <p id="confirmacionMensaje"></p>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmacion()">Cancelar</button>
+                    <button type="button" class="btn btn-eliminar" id="btnConfirmarEliminar">Eliminar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nuevo Modal de Mensajes (Éxito/Error) -->
+        <div id="modalMensaje" class="modal">
+            <div class="modal-content modal-message-content">
+                <span class="close" onclick="cerrarModalMensaje()">&times;</span>
+                <h2 id="mensajeTitulo"></h2>
+                <p id="mensajeContenido"></p>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" onclick="cerrarModalMensaje()">Cerrar</button>
+                </div>
+            </div>
+        </div>
         
         <button id="modoNocheBtn" class="modo-noche-flotante" aria-label="Cambiar a modo noche">🌙</button>
         <script src="${pageContext.request.contextPath}/Js/JsAdmin/ModoNoche-Sidebar.js"></script>
         
         <script>
+            // Variables globales para la eliminación
+            let empleadoAEliminarTipo = '';
+            let empleadoAEliminarId = 0;
+
             // Función para cambiar entre pestañas
             function openTab(evt, tabName) {
                 const tabContents = document.getElementsByClassName("tab-content");
@@ -492,18 +687,31 @@
                 
                 document.getElementById(tabName).classList.add("active");
                 evt.currentTarget.classList.add("active");
+
+                // Actualizar el valor del hidden input y el placeholder de la barra de búsqueda
+                const currentTabHidden = document.getElementById("currentTabHidden");
+                const searchInput = document.getElementById("searchInput");
+                currentTabHidden.value = tabName;
+                if (tabName === 'veterinarios') {
+                    searchInput.placeholder = "Buscar veterinario por nombre, DNI, o especialidad...";
+                } else {
+                    searchInput.placeholder = "Buscar recepcionista por nombre, DNI, o correo...";
+                }
             }
             
-            // Funciones para el modal
+            // Funciones para el modal de agregar/editar
             function mostrarModalAgregar(tipo) {
                 const modal = document.getElementById("modalEmpleado");
                 const titulo = document.getElementById("modalTitulo");
                 const form = document.getElementById("formEmpleado");
                 const tipoInput = document.getElementById("tipoEmpleado");
                 const accionInput = document.getElementById("accion");
+                const idInput = document.getElementById("idEmpleado");
                 
-                // Resetear formulario
+                // Resetear formulario y campos específicos
                 form.reset();
+                idInput.value = ''; // Asegurarse de que el ID esté vacío para agregar
+                document.getElementById("contrasena").placeholder = "Dejar vacío para no cambiar"; // Resetear placeholder
                 
                 // Configurar según el tipo de empleado
                 tipoInput.value = tipo;
@@ -513,20 +721,22 @@
                     titulo.textContent = "Agregar Veterinario";
                     document.getElementById("especialidadGroup").style.display = "block";
                     document.getElementById("recepcionistaFields").style.display = "none";
-                } else {
+                    document.getElementById("especialidad").required = true;
+                    document.getElementById("correo").required = false;
+                    document.getElementById("contrasena").required = true;
+                } else { // recepcionista
                     titulo.textContent = "Agregar Recepcionista";
                     document.getElementById("especialidadGroup").style.display = "none";
                     document.getElementById("recepcionistaFields").style.display = "block";
+                    document.getElementById("especialidad").required = false;
+                    document.getElementById("correo").required = true;
+                    document.getElementById("contrasena").required = true;
                 }
                 
-                modal.style.display = "block";
+                modal.style.display = "flex";
             }
             
             function mostrarModalEditar(tipo, id) {
-                // Aquí deberías hacer una petición AJAX para obtener los datos del empleado
-                // y luego llenar el formulario con esos datos
-                console.log("Editar " + tipo + " con ID: " + id);
-                
                 const modal = document.getElementById("modalEmpleado");
                 const titulo = document.getElementById("modalTitulo");
                 const form = document.getElementById("formEmpleado");
@@ -534,58 +744,121 @@
                 const accionInput = document.getElementById("accion");
                 const idInput = document.getElementById("idEmpleado");
                 
+                // Resetear formulario y campos específicos
+                form.reset();
+                document.getElementById("contrasena").placeholder = "Dejar vacío para no cambiar";
+                document.getElementById("contrasena").required = false;
+                
                 // Configurar formulario para edición
                 tipoInput.value = tipo;
-                accionInput.value = "editar";
+                accionInput.value = "actualizar";
                 idInput.value = id;
                 
-                if (tipo === "veterinario") {
-                    titulo.textContent = "Editar Veterinario";
-                    document.getElementById("especialidadGroup").style.display = "block";
-                    document.getElementById("recepcionistaFields").style.display = "none";
-                    
-                    // Simulamos datos (en producción harías una petición AJAX)
-                    // Ejemplo con datos hardcodeados - reemplazar con llamada real
-                    document.getElementById("nombre");
-                    document.getElementById("apellido") ;
-                    document.getElementById("dni");
-                    document.getElementById("numero");
-                    document.getElementById("especialidad");
-                } else {
-                    titulo.textContent = "Editar Recepcionista";
-                    document.getElementById("especialidadGroup").style.display = "none";
-                    document.getElementById("recepcionistaFields").style.display = "block";
-                    
-                    // Simulamos datos (en producción harías una petición AJAX)
-                    document.getElementById("nombre").value = "";
-                    document.getElementById("apellido").value = "";
-                    document.getElementById("dni").value = "";
-                    document.getElementById("numero").value = "";
-                    document.getElementById("correo").value = "";
-                    document.getElementById("contrasena").value = "";
-                }
-                
-                modal.style.display = "block";
+                // Hacer una petición AJAX para obtener los datos del empleado
+                fetch('${pageContext.request.contextPath}/AdminEmpleadoServlet?accion=ver&tipo=' + tipo + '&id=' + id)
+                    .then(response => {
+                        if (!response.ok) {
+                            // Si la respuesta no es OK (ej. 404, 500), intentar leer el mensaje de error
+                            return response.json().then(errorData => { 
+                                throw new Error(errorData.error || 'Error desconocido al obtener datos del empleado.'); 
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data) {
+                            document.getElementById("nombre").value = data.nombre || '';
+                            document.getElementById("apellido").value = data.apellido || '';
+                            document.getElementById("dni").value = data.dni || '';
+                            document.getElementById("numero").value = data.numero || '';
+
+                            if (tipo === "veterinario") {
+                                titulo.textContent = "Editar Veterinario";
+                                document.getElementById("especialidadGroup").style.display = "block";
+                                document.getElementById("recepcionistaFields").style.display = "none";
+                                document.getElementById("especialidad").value = data.especialidad || '';
+                                document.getElementById("especialidad").required = true;
+                                document.getElementById("correo").required = false;
+                            } else { // recepcionista
+                                titulo.textContent = "Editar Recepcionista";
+                                document.getElementById("especialidadGroup").style.display = "none";
+                                document.getElementById("recepcionistaFields").style.display = "block";
+                                document.getElementById("correo").value = data.correo || '';
+                                document.getElementById("especialidad").required = false;
+                                document.getElementById("correo").required = true;
+                            }
+                            modal.style.display = "flex"; // Mostrar el modal después de cargar los datos
+                        } else {
+                            mostrarMensaje("Error", "No se encontraron datos para el empleado con ID: " + id, "error");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar datos del empleado:', error);
+                        mostrarMensaje("Error", "Error al cargar datos del empleado: " + error.message, "error");
+                    });
             }
             
-         
             function cerrarModal() {
                 document.getElementById("modalEmpleado").style.display = "none";
             }
-            
-           
-            window.onclick = function(event) {
-                const modal = document.getElementById("modalEmpleado");
-                const modalVer = document.getElementById("modalVer");
-                
-                if (event.target === modal) {
-                    modal.style.display = "none";
-                }
-                
-                if (event.target === modalVer) {
-                    modalVer.style.display = "none";
-                }
+
+            // Funciones para el modal de confirmación de eliminación
+            function confirmarEliminar(tipo, id, nombreCompleto) {
+                empleadoAEliminarTipo = tipo;
+                empleadoAEliminarId = id;
+                document.getElementById("confirmacionMensaje").textContent = "¿Estás seguro de que quieres eliminar a " + nombreCompleto + "? Esta acción no se puede deshacer.";
+                document.getElementById("modalConfirmacion").style.display = "flex";
             }
+
+            document.getElementById("btnConfirmarEliminar").onclick = function() {
+                // Redirigir al servlet para eliminar
+                window.location.href = '${pageContext.request.contextPath}/AdminEmpleadoServlet?accion=eliminar&tipo=' + empleadoAEliminarTipo + '&id=' + empleadoAEliminarId;
+                cerrarModalConfirmacion();
+            };
+
+            function cerrarModalConfirmacion() {
+                document.getElementById("modalConfirmacion").style.display = "none";
+            }
+
+            // Funciones para el modal de mensajes (éxito/error)
+            function mostrarMensaje(titulo, contenido, tipo) {
+                const modalMensaje = document.getElementById("modalMensaje");
+                document.getElementById("mensajeTitulo").textContent = titulo;
+                document.getElementById("mensajeContenido").textContent = contenido;
+                // Puedes añadir clases para estilos diferentes según el tipo (éxito/error)
+                // if (tipo === "error") { ... }
+                modalMensaje.style.display = "flex";
+            }
+
+            function cerrarModalMensaje() {
+                document.getElementById("modalMensaje").style.display = "none";
+                // Recargar la página después de un mensaje de éxito/error para reflejar los cambios
+                window.location.reload(); 
+            }
+
+            // Mostrar mensajes de éxito/error al cargar la página (desde el servlet)
+            window.onload = function() {
+                const activeTabFromServlet = "<%= activeTab != null ? escapeJsString.apply(activeTab) : "" %>";
+                if (activeTabFromServlet) {
+                    // Simular clic en la pestaña correcta para activarla
+                    const tabButton = document.querySelector(`.tab-button[onclick*="'${activeTabFromServlet}'"]`);
+                    if (tabButton) {
+                        openTab({ currentTarget: tabButton }, activeTabFromServlet);
+                    }
+                } else {
+                    // Si no hay pestaña activa, activar la primera por defecto
+                    openTab({ currentTarget: document.querySelector('.tab-button.active') }, 'veterinarios');
+                }
+
+                const mensajeExito = "<%= mensajeExito != null ? escapeJsString.apply(mensajeExito) : "" %>";
+                const mensajeError = "<%= mensajeError != null ? escapeJsString.apply(mensajeError) : "" %>";
+
+                if (mensajeExito) {
+                    mostrarMensaje("Éxito", mensajeExito, "success");
+                } else if (mensajeError) {
+                    mostrarMensaje("Error", mensajeError, "error");
+                }
+            };
         </script>
     </body>
 </html>
