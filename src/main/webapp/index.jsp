@@ -1,9 +1,3 @@
-<%-- 
-    Document   : index
-    Created on : 4 may 2025, 2:26:23
-    Author     : andy9
---%>
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="es">
@@ -11,11 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VeterinariaSantaCruz</title>
-    <link rel="stylesheet" href="css/index.css">    
+    <link rel="stylesheet" href="css/index.css">
+    <style>
+        /* Estilos para el mensaje de error */
+        #mensajeErrorLogin {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center; /* Centrar el texto del error */
+        }
+    </style>
 </head>
 <body>
 
-<!-- navbar -->
 <nav class="navbar">
     <div class="logo-container">
         <a href="#">
@@ -35,54 +37,48 @@
             <a href="#">Contacto</a>
         </div>
     <div class="buttons">
-        <a href="#" class="btn login">Inicio Sesión</a>
-        <a href="#" onclick="abrirRegistroDesdeLogin()" class="btn register">Registrarse</a>
+        <a href="#" class="btn login" onclick="mostrarModalInicial()">Inicio Sesión</a> <a href="#" onclick="abrirRegistroDesdeLogin()" class="btn register">Registrarse</a>
     </div>
     </div>
 
-    <!-- Botón flotante modo noche -->
     <button id="modoNocheBtn" class="modo-noche-flotante" aria-label="Cambiar a modo noche">🌙</button>
 </nav>
 
-<!-- Modal Selección Inicial -->
 <div id="modalSeleccionInicial" class="modal">
     <div class="modal-content animado">
         <span class="cerrar" onclick="cerrarModal('modalSeleccionInicial')">&times;</span>
         <img id="logoSeleccionInicial" src="Recursos/Logo.png" alt="Logo" class="icono-patita">
         <h2>¿Cómo deseas ingresar?</h2>
-        <button class="btn1 rol-btn1" onclick="mostrarModalEquipo()">Soy del equipo</button>
-        <button class="btn1 rol-btn2" onclick="abrirLogin('Cliente')">Soy cliente</button>
+        <button class="btn1 rol-btn1" onclick="abrirLogin('Cliente')">Soy cliente</button>
+        <button class="btn1 rol-btn2" onclick="mostrarModalEquipo()">Soy del equipo</button>
     </div>
 </div>
 
-<!-- Modal para equipo (Administrador/Recepcionista) -->
 <div id="modalEquipo" class="modal">
     <div class="modal-content animado">
         <span class="cerrar" onclick="cerrarModal('modalEquipo')">&times;</span>
         <img id="logoModalEquipo" src="Recursos/Logo.png" alt="Logo" class="icono-patita">
         <h2>Ingreso del equipo</h2>
-        <button class="btn1 rol-btn1" onclick="abrirLogin('Administrador')">Administrador</button>
+        <button class="btn1 rol-btn2" onclick="abrirLogin('Administrador')">Administrador</button>
         <button class="btn1 rol-btn2" onclick="abrirLogin('Recepcionista')">Recepcionista</button>
     </div>
 </div>
-<!-- Modal Login Genérico -->
+
 <div id="modalLogin" class="modal">
     <div class="modal-content animado">
         <span class="cerrar" onclick="cerrarModal('modalLogin')">&times;</span>
         <h2 id="tituloLogin">Iniciar Sesión</h2>
         <img src="Recursos/IconUser.svg" alt="Icono Usuario" class="icono-usuario">
 
-        <form id="formLogin" action="LoginServlet" method="post">
+        <form id="formLogin"> 
             <input type="hidden" name="rol" id="inputRol">
             <input type="text" name="correo" placeholder="Correo electrónico" required>
             <input type="password" name="contrasena" placeholder="Contraseña" required>
             <button type="submit" class="btn1 iniciar-sesion">Ingresar</button>
         </form>
 
-        <!-- Mensaje de error (inicialmente oculto) -->
-        <div id="mensajeErrorLogin" style="display: none; color: red; font-weight: bold; margin-top: 10px;">
-            Correo o contraseña incorrectos. Intente nuevamente.
-        </div>
+        <div id="mensajeErrorLogin" style="display: none;">
+            </div>
 
         <div id="opcionesRegistro" style="display: none;">
             <p>¿Aún no tienes una cuenta? <a href="#" onclick="abrirRegistroDesdeLogin()">Regístrate</a></p>
@@ -91,8 +87,7 @@
 </div>
 
 
-<!-- Modal Registro (solo para clientes) -->
- <%
+<%
     String errorRegistro = (String) request.getAttribute("error");
     String exitoRegistro = (String) request.getAttribute("exito");
 
@@ -109,8 +104,6 @@
         <img id="logoRegistro" src="Recursos/Logo.png" alt="Logo" class="icono-patita">
         <h2>Registrar Cliente</h2>
 
-
-
         <% if ("general".equals(errorRegistro)) { %>
             <div class="alert error">Error general al registrar. Intenta nuevamente.</div>
         <% } %>
@@ -122,20 +115,20 @@
         <form class="form-registro" action="ClienteServlet" method="post">
             <div class="input-group">
                 <input type="text" name="nombres" placeholder="Nombres" required 
-                       pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" title="Solo letras"
-                       value="<%= valNombres %>">
+                        pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" title="Solo letras"
+                        value="<%= valNombres %>">
 
                 <input type="text" name="apellidos" placeholder="Apellidos" required 
-                       pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" title="Solo letras"
-                       value="<%= valApellidos %>">
+                        pattern="[A-Za-zÁÉÍÓÚáéíóúñÑ ]+" title="Solo letras"
+                        value="<%= valApellidos %>">
             </div>
 
             <div class="input-group">
                 <div style="width: 100%;">
                     <input type="text" name="dni" placeholder="DNI" required 
-                           min="10000000" max="99999999" title="8 dígitos exactos"
-                           value="<%= valDni %>"
-                           class="<%= "dni".equals(errorRegistro) ? "campo-error" : "" %>">
+                            minlength="8" maxlength="8" title="8 dígitos exactos"
+                            value="<%= valDni %>"
+                            class="<%= "dni".equals(errorRegistro) ? "campo-error" : "" %>">
                     <% if ("dni".equals(errorRegistro)) { %>
                         <div style="color: red; font-size: 13px;">DNI ya registrado.</div>
                     <% } %>
@@ -143,9 +136,9 @@
 
                 <div style="width: 100%;">
                     <input type="tel" name="telefono" placeholder="Número telefónico" required 
-                           pattern="9[0-9]{8}" title="Debe empezar con 9 y tener 9 dígitos"
-                           value="<%= valTelefono %>"
-                           class="<%= "telefono".equals(errorRegistro) ? "campo-error" : "" %>">
+                            pattern="9[0-9]{8}" title="Debe empezar con 9 y tener 9 dígitos"
+                            value="<%= valTelefono %>"
+                            class="<%= "telefono".equals(errorRegistro) ? "campo-error" : "" %>">
                     <% if ("telefono".equals(errorRegistro)) { %>
                         <div style="color: red; font-size: 13px;">Número ya registrado.</div>
                     <% } %>
@@ -153,7 +146,7 @@
             </div>
 
             <input type="email" name="correo" placeholder="Correo Electrónico" required maxlength="100"
-                   value="<%= valCorreo %>">
+                    value="<%= valCorreo %>">
 
             <input type="password" name="contrasena" placeholder="Contraseña" required minlength="8" maxlength="45">
 
@@ -164,10 +157,6 @@
 </div>
 
 
-
-
-<!-- Contenido principal de la página -->    
-    
 <div class="overlay" id="overlay"></div>
 
 <section class="main-section">
@@ -203,8 +192,7 @@
 </section>
 
 
-<!----------------------------------------------------------------------------------->
-    <section class="bloque-servicios">
+<section class="bloque-servicios">
         <div class="div-contenido">
             <div class="titulo-servicios">
                 <h2>Nuestros Servicios</h2>
@@ -218,13 +206,11 @@
         </div>
     
         <div class="div-slider">
-            <!-- Botón flecha izquierda -->
             <button class="flecha izquierda">
                 <img src="Recursos/FIzquierda.svg" alt="Flecha Izquierda">
             </button>
     
             <div class="slider-contenedor">
-                <!-- Tarjetas 1-6 -->
                 <div class="tarjeta">
                     <div class="tarjeta-imagen">
                         <img src="Recursos/Consulta.svg" alt="Consulta General">
@@ -287,7 +273,6 @@
     
             </div>
     
-            <!-- Botón flecha derecha -->
             <button class="flecha derecha">
                 <img src="Recursos/FDerecha.svg" alt="Flecha Derecha">
             </button>
@@ -295,17 +280,13 @@
     </section>
 
     
-    <!----------------------------------------------------------------------------------->
     <section class="bloque-tienda">
-        <!-- Contenido del título -->
         <div class="div-contenido-tienda">
             <h2>Tienda Santa Cruz</h2>
         </div>
     
-        <!-- Barra de tarjetas en movimiento -->
         <div class="div-slider-tienda">
             <div class="slider-tienda-contenedor">
-                <!-- Tarjeta 1 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/Gatotienda.svg" alt="Alimentos balanceados">
@@ -320,7 +301,6 @@
                     </div>
                 </div>
     
-                <!-- Tarjeta 2 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/Suplementos.svg" alt="Suplementos y vitaminas">
@@ -335,7 +315,6 @@
                     </div>
                 </div>
     
-                <!-- Tarjeta 3 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/Desparacitacion.svg" alt="Antipulgas y desparasitantes">
@@ -350,7 +329,6 @@
                     </div>
                 </div>
     
-                <!-- Tarjeta 4 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/Higiene.svg" alt="Productos de higiene">
@@ -365,7 +343,6 @@
                     </div>
                 </div>
     
-                <!-- Tarjeta 5 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/ImgJuguetes 1.svg" alt="Juguetes y enriquecimiento">
@@ -380,7 +357,6 @@
                     </div>
                 </div>
     
-                <!-- Tarjeta 6 -->
                 <div class="tarjeta-tienda">
                     <div class="tarjeta-imagen-tienda">
                         <img src="Recursos/ImgCollar 1.svg" alt="Collares, correas y arneses">
@@ -399,8 +375,6 @@
         </div>
     </section>
 
-
-    <!----------------------------------------------------------------------------------->
 
     <footer class="footer">
         <div class="footer-contenido">
@@ -425,5 +399,146 @@
     </footer>
     <script src="Js/Index.js"></script>
     <script src="Js/ModoNocheIndex.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const formLogin = document.getElementById('formLogin');
+            const mensajeErrorLogin = document.getElementById('mensajeErrorLogin');
+
+            if (formLogin) {
+                formLogin.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Previene el envío normal del formulario
+
+                    const formData = new FormData(formLogin);
+                    const params = new URLSearchParams(formData);
+
+                    // Oculta y limpia cualquier mensaje de error previo
+                    mensajeErrorLogin.style.display = 'none';
+                    mensajeErrorLogin.textContent = '';
+
+                    fetch('LoginServlet', {
+                        method: 'POST',
+                        body: params
+                    })
+                    .then(response => {
+                        // Verifica si la respuesta es JSON antes de intentar parsearla
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json();
+                        } else {
+                            // Si no es JSON, lanza un error para el catch
+                            throw new TypeError("La respuesta del servidor no es JSON. Contenido: " + response.text());
+                        }
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Login exitoso, redirige
+                            window.location.href = data.redirect;
+                        } else {
+                            // Login fallido, muestra el mensaje de error
+                            mensajeErrorLogin.textContent = data.message || "Intento de loguearse fallido. Verifique su correo, contraseña y rol.";
+                            mensajeErrorLogin.style.display = 'block'; // Muestra el mensaje de error
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error durante la petición AJAX:', error);
+                        mensajeErrorLogin.textContent = "Ocurrió un error de conexión. Intente de nuevo más tarde.";
+                        mensajeErrorLogin.style.display = 'block'; // Muestra el mensaje de error
+                    });
+                });
+            }
+
+            // Opcional: Limpiar el mensaje de error cuando el modal de login se cierra
+            // Asumo que tienes una función global o manejador para cerrar modales.
+            // Si tus modales se manejan directamente con CSS display, puedes
+            // usar un MutationObserver o añadir la limpieza a tu función 'cerrarModal'.
+            const modalLogin = document.getElementById('modalLogin');
+            if (modalLogin) {
+                // Si usas tu propia función cerrarModal:
+                // Asegúrate de que tu función cerrarModal('modalLogin') también limpie el mensaje:
+                // document.getElementById('mensajeErrorLogin').style.display = 'none';
+                // document.getElementById('mensajeErrorLogin').textContent = '';
+
+                // Una forma más robusta si el modal se cierra de otras maneras:
+                const observer = new MutationObserver((mutationsList, observer) => {
+                    for (const mutation of mutationsList) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            if (modalLogin.style.display === 'none') {
+                                mensajeErrorLogin.style.display = 'none';
+                                mensajeErrorLogin.textContent = '';
+                                formLogin.reset(); // Opcional: resetear los campos del formulario
+                            }
+                        }
+                    }
+                });
+                observer.observe(modalLogin, { attributes: true });
+            }
+
+            // Asegurar que el botón "Inicio Sesión" de la navbar abra el modal inicial
+            const btnLoginNavbar = document.querySelector('.navbar .btn.login');
+            if (btnLoginNavbar) {
+                btnLoginNavbar.onclick = function() {
+                    mostrarModalInicial();
+                    return false; // Previene el comportamiento por defecto del enlace
+                };
+            }
+        });
+
+        // Asegúrate de que tus funciones de apertura y cierre de modal existan y funcionen correctamente
+        // Estas son las que ya tienes o deberías tener en tu 'Js/Index.js'
+        // Ejemplo de cómo podrían ser (si no las tienes ya):
+        function abrirModal(idModal) {
+            document.getElementById(idModal).style.display = 'flex'; // O 'block' según tu CSS
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function cerrarModal(idModal) {
+            document.getElementById(idModal).style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function mostrarModalInicial() {
+            cerrarModal('modalLogin'); // Asegúrate de cerrar cualquier otro modal abierto
+            cerrarModal('modalRegistro');
+            cerrarModal('modalEquipo');
+            abrirModal('modalSeleccionInicial');
+        }
+
+        function mostrarModalEquipo() {
+            cerrarModal('modalSeleccionInicial');
+            abrirModal('modalEquipo');
+        }
+
+        function abrirLogin(rol) {
+            document.getElementById('inputRol').value = rol;
+            document.getElementById('tituloLogin').textContent = 'Iniciar Sesión como ' + rol;
+            cerrarModal('modalSeleccionInicial');
+            cerrarModal('modalEquipo');
+            cerrarModal('modalRegistro'); // Cierra el modal de registro si está abierto
+            abrirModal('modalLogin');
+            // Opcional: Limpiar el formulario y el mensaje de error al abrir el modal de login
+            document.getElementById('formLogin').reset();
+            document.getElementById('mensajeErrorLogin').style.display = 'none';
+            document.getElementById('mensajeErrorLogin').textContent = '';
+        }
+
+        function abrirRegistroDesdeLogin() {
+            cerrarModal('modalLogin');
+            abrirModal('modalRegistro');
+        }
+
+        function abrirLoginDesdeRegistro() {
+            cerrarModal('modalRegistro');
+            // Al abrir el login desde el registro, no sabemos el rol, así que reseteamos o lo dejamos genérico.
+            // Podrías default a 'Cliente' si es el más común o forzar la selección.
+            document.getElementById('inputRol').value = 'Cliente'; // O un valor por defecto
+            document.getElementById('tituloLogin').textContent = 'Iniciar Sesión como Cliente'; // O genérico "Iniciar Sesión"
+            abrirModal('modalLogin');
+            document.getElementById('formLogin').reset();
+            document.getElementById('mensajeErrorLogin').style.display = 'none';
+            document.getElementById('mensajeErrorLogin').textContent = '';
+        }
+
+    </script>
 </body>
 </html>

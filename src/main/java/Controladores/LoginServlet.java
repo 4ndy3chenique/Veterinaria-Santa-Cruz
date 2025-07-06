@@ -7,6 +7,7 @@ import ModeloDAO.AdministradorDAO;
 import ModeloDAO.RecepcionistaDAO;
 import ModeloDAO.UsuarioClienteDAO;
 import java.io.IOException;
+import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,12 +22,16 @@ public class LoginServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
+
         String correo = request.getParameter("correo");
         String contrasena = request.getParameter("contrasena");
         String rol = request.getParameter("rol");
 
         HttpSession session = request.getSession();
-        String redirectPage = "index.jsp?errorLogin=1"; 
+        String jsonResponseString = ""; // Aquí construiremos la cadena JSON
 
         try {
             switch (rol) {
@@ -34,18 +39,23 @@ public class LoginServlet extends HttpServlet {
                     AdministradorDAO adminDAO = new AdministradorDAO();
                     Administrador admin = adminDAO.validarAdministrador(correo, contrasena);
                     if (admin != null) {
-                        session.setAttribute("username", admin);  // Cambiado a "username"
-                        redirectPage = request.getContextPath() + "/VistasWeb/VistasAdmin/AdminDash.jsp";
+                        session.setAttribute("username", admin);
+                        String redirectUrl = request.getContextPath() + "/VistasWeb/VistasAdmin/AdminDash.jsp";
+                        jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
+                    } else {
+                        jsonResponseString = "{\"success\": false, \"message\": \"Correo o contraseña incorrectos para Administrador.\"}";
                     }
                     break;
 
-                 case "Recepcionista":
+                case "Recepcionista":
                     RecepcionistaDAO recepDAO = new RecepcionistaDAO();
                     Recepcionista recepcionista = recepDAO.validarRecepcionista(correo, contrasena);
                     if (recepcionista != null) {
                         session.setAttribute("recepcionista", recepcionista);
-                        // ¡Aquí está el cambio! Redirige a ClienteRServlet
-                        redirectPage = request.getContextPath() + "/ClienteRServlet";
+                        String redirectUrl = request.getContextPath() + "/ClienteRServlet";
+                        jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
+                    } else {
+                        jsonResponseString = "{\"success\": false, \"message\": \"Correo o contraseña incorrectos para Recepcionista.\"}";
                     }
                     break;
 
@@ -53,20 +63,24 @@ public class LoginServlet extends HttpServlet {
                     UsuarioClienteDAO clienteDAO = new UsuarioClienteDAO();
                     UsuarioCliente cliente = clienteDAO.validarUsuario(correo, contrasena);
                     if (cliente != null) {
-                        session.setAttribute("usuario", cliente);  // Este se mantiene
-                        redirectPage = request.getContextPath() + "/VistasWeb/VistasCliente/indexCliente.jsp";
+                        session.setAttribute("usuario", cliente);
+                        String redirectUrl = request.getContextPath() + "/VistasWeb/VistasCliente/indexCliente.jsp";
+                        jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
+                    } else {
+                        jsonResponseString = "{\"success\": false, \"message\": \"Correo o contraseña incorrectos para Cliente.\"}";
                     }
                     break;
 
                 default:
-                    redirectPage = "index.jsp?errorLogin=1";
+                    jsonResponseString = "{\"success\": false, \"message\": \"Rol no válido seleccionado.\"}";
                     break;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            redirectPage = "index.jsp?errorLogin=1";
+            jsonResponseString = "{\"success\": false, \"message\": \"Ocurrió un error en el servidor. Intente de nuevo.\"}";
+        } finally {
+            out.print(jsonResponseString);
+            out.flush();
         }
-
-        response.sendRedirect(redirectPage);
     }
 }
