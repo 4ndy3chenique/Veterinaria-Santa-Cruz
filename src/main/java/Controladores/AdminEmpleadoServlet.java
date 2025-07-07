@@ -2,34 +2,33 @@ package Controladores;
 
 import Modelo.Veterinario;
 import Modelo.Recepcionista;
-import Modelo.Conexion; // Aunque no se usa directamente aquí, se mantiene por si es necesario para otros métodos
+import Modelo.Conexion; // Asegúrate de que tu clase Conexion maneje las conexiones de forma segura.
 import ModeloDAO.RecepcionistaDAO;
 import ModeloDAO.VeterinarioDAO;
+
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession; // Importar HttpSession
 import java.io.IOException;
-import java.sql.Connection; // Se mantiene por si es necesario para otros métodos
-import java.sql.SQLException; // Se mantiene por si es necesario para otros métodos
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-// Se eliminan las importaciones de Jackson
-
 @WebServlet(name = "AdminEmpleadoServlet", urlPatterns = {"/AdminEmpleadoServlet"})
 public class AdminEmpleadoServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AdminEmpleadoServlet.class.getName());
-    // Se elimina la instancia de ObjectMapper
 
     @Override
     public void init() throws ServletException {
         super.init();
-        // Se elimina la inicialización de ObjectMapper
     }
 
     @Override
@@ -38,27 +37,18 @@ public class AdminEmpleadoServlet extends HttpServlet {
 
         String accion = request.getParameter("accion");
 
-        if (accion == null || accion.isEmpty()) {
+        if (accion == null || accion.isEmpty() || "listar".equals(accion)) {
             listarEmpleados(request, response);
         } else {
             switch (accion) {
-                case "ver":
+                case "obtener":
                     obtenerDatosEmpleadoJson(request, response);
                     break;
-                case "editar":
-                    // Si el JSP no usa AJAX para precargar el formulario de edición,
-                    // esta acción podría redirigir a un JSP de formulario con los datos.
-                    // Actualmente, el JSP usa 'ver' para AJAX.
-                    listarEmpleados(request, response);
-                    break;
-                case "eliminar":
+                case "eliminar": // Se mantiene aquí para el caso de eliminación directa por GET (ej. enlace)
                     eliminarEmpleado(request, response);
                     break;
                 case "nuevo":
                     mostrarFormularioNuevo(request, response);
-                    break;
-                case "listar": // Esta acción ahora también manejará la búsqueda
-                    listarEmpleados(request, response);
                     break;
                 default:
                     listarEmpleados(request, response);
@@ -73,7 +63,7 @@ public class AdminEmpleadoServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         String accion = request.getParameter("accion");
-        String tipoEmpleado = request.getParameter("tipoEmpleado");
+        String tipoEmpleado = request.getParameter("tipoEmpleado"); // Asegúrate de que este parámetro se envíe desde el formulario/modal
 
         if (accion != null) {
             switch (accion) {
@@ -83,14 +73,16 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 case "actualizar":
                     actualizarEmpleado(request, response, tipoEmpleado);
                     break;
-                case "eliminar":
-                    eliminarEmpleado(request, response);
-                    break;
+                // Si decides manejar la eliminación por POST (ej. un modal de confirmación con submit POST),
+                // la podrías habilitar aquí y eliminar el case "eliminar" de doGet.
+                // case "eliminar":
+                //     eliminarEmpleado(request, response);
+                //     break;
                 default:
-                    listarEmpleados(request, response);
+                    response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar");
             }
         } else {
-            listarEmpleados(request, response);
+            response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar");
         }
     }
 
@@ -98,13 +90,26 @@ public class AdminEmpleadoServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String searchQuery = request.getParameter("query");
-        String activeTab = request.getParameter("currentTab"); // Obtener la pestaña activa desde la URL
+        String activeTab = request.getParameter("currentTab");
 
-        // Si no se especifica una pestaña activa, por defecto es 'veterinarios'
-        if (activeTab == null || activeTab.isEmpty()) {
-            activeTab = "veterinarios";
+        // Recuperar mensajes flash de la sesión
+        HttpSession session = request.getSession();
+        String mensajeFlash = (String) session.getAttribute("mensajeFlash");
+        String errorFlash = (String) session.getAttribute("errorFlash");
+
+        if (mensajeFlash != null) {
+            request.setAttribute("mensaje", mensajeFlash);
+            session.removeAttribute("mensajeFlash"); // Eliminar para que no se muestre de nuevo
         }
-        request.setAttribute("activeTab", activeTab); // Pasar la pestaña activa al JSP
+        if (errorFlash != null) {
+            request.setAttribute("error", errorFlash);
+            session.removeAttribute("errorFlash"); // Eliminar para que no se muestre de nuevo
+        }
+
+        if (activeTab == null || activeTab.isEmpty()) {
+            activeTab = "veterinarios"; // Default tab
+        }
+        request.setAttribute("activeTab", activeTab);
 
         VeterinarioDAO veterinarioDAO = new VeterinarioDAO();
         List<Veterinario> allVeterinarios = veterinarioDAO.listarVeterinarios();
@@ -117,28 +122,26 @@ public class AdminEmpleadoServlet extends HttpServlet {
         if (searchQuery != null && !searchQuery.trim().isEmpty()) {
             String lowerCaseQuery = searchQuery.trim().toLowerCase();
 
-            // Filtrar veterinarios
             for (Veterinario vet : allVeterinarios) {
-                if ( (vet.getNombre() != null && vet.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
-                     (vet.getApellido() != null && vet.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
-                     (vet.getDni() != null && vet.getDni().toLowerCase().contains(lowerCaseQuery)) ||
-                     (vet.getNumero() != null && vet.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
-                     (vet.getEspecialidad() != null && vet.getEspecialidad().toLowerCase().contains(lowerCaseQuery)) ) {
+                if ((vet.getNombre() != null && vet.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
+                    (vet.getApellido() != null && vet.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
+                    (vet.getDni() != null && vet.getDni().toLowerCase().contains(lowerCaseQuery)) ||
+                    (vet.getNumero() != null && vet.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
+                    (vet.getEspecialidad() != null && vet.getEspecialidad().toLowerCase().contains(lowerCaseQuery))) {
                     filteredVeterinarios.add(vet);
                 }
             }
 
-            // Filtrar recepcionistas
             for (Recepcionista rec : allRecepcionistas) {
-                if ( (rec.getNombre() != null && rec.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
-                     (rec.getApellido() != null && rec.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
-                     (rec.getDni() != null && rec.getDni().toLowerCase().contains(lowerCaseQuery)) ||
-                     (rec.getNumero() != null && rec.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
-                     (rec.getCorreo() != null && rec.getCorreo().toLowerCase().contains(lowerCaseQuery)) ) {
+                if ((rec.getNombre() != null && rec.getNombre().toLowerCase().contains(lowerCaseQuery)) ||
+                    (rec.getApellido() != null && rec.getApellido().toLowerCase().contains(lowerCaseQuery)) ||
+                    (rec.getDni() != null && rec.getDni().toLowerCase().contains(lowerCaseQuery)) ||
+                    (rec.getNumero() != null && rec.getNumero().toLowerCase().contains(lowerCaseQuery)) ||
+                    (rec.getCorreo() != null && rec.getCorreo().toLowerCase().contains(lowerCaseQuery))) {
                     filteredRecepcionistas.add(rec);
                 }
             }
-            request.setAttribute("searchQuery", searchQuery); // Mantener el término de búsqueda en el input del JSP
+            request.setAttribute("searchQuery", searchQuery);
         } else {
             filteredVeterinarios = allVeterinarios;
             filteredRecepcionistas = allRecepcionistas;
@@ -151,10 +154,9 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 .forward(request, response);
     }
 
-    // Método auxiliar para escapar cadenas para JSON (se vuelve a incluir)
     private String escapeJsonString(String text) {
         if (text == null) {
-            return "null";
+            return ""; // Changed from "null" to "" for cleaner JSON in case of null values
         }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
@@ -182,10 +184,12 @@ public class AdminEmpleadoServlet extends HttpServlet {
                     sb.append("\\t");
                     break;
                 default:
-                    if (c < ' ' || (c >= '\u0080' && c < '\u00a0') || (c >= '\u2000' && c < '\u2100')) {
-                        sb.append(String.format("\\u%04x", (int) c));
-                    } else {
+                    // Basic ASCII and Latin-1 characters
+                    if (c >= ' ' && c <= '~' || (c >= '\u00A0' && c <= '\u00FF')) {
                         sb.append(c);
+                    } else {
+                        // For other Unicode characters, escape them
+                        sb.append(String.format("\\u%04x", (int) c));
                     }
                     break;
             }
@@ -193,16 +197,15 @@ public class AdminEmpleadoServlet extends HttpServlet {
         return sb.toString();
     }
 
-    // Método para obtener datos del empleado y enviarlos como JSON (construido manualmente)
     private void obtenerDatosEmpleadoJson(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String tipo = request.getParameter("tipo");
+        String tipo = request.getParameter("tipoEmpleado");
         int id = 0;
         try {
-            id = Integer.parseInt(request.getParameter("id"));
+            id = Integer.parseInt(request.getParameter("idEmpleado"));
         } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "ID de empleado inválido al intentar obtener datos JSON: " + request.getParameter("id"), e);
+            LOGGER.log(Level.WARNING, "ID de empleado inválido al intentar obtener datos JSON: " + request.getParameter("idEmpleado"), e);
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"" + escapeJsonString("ID de empleado inválido.") + "\"}");
@@ -229,7 +232,6 @@ public class AdminEmpleadoServlet extends HttpServlet {
                     jsonResponse.append("}");
                 } else {
                     response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    response.setContentType("application/json");
                     response.getWriter().write("{\"error\": \"" + escapeJsonString("Veterinario no encontrado con ID: " + id) + "\"}");
                     return;
                 }
@@ -244,17 +246,16 @@ public class AdminEmpleadoServlet extends HttpServlet {
                     jsonResponse.append("\"numero\": \"").append(escapeJsonString(rec.getNumero())).append("\",");
                     jsonResponse.append("\"dni\": \"").append(escapeJsonString(rec.getDni())).append("\",");
                     jsonResponse.append("\"correo\": \"").append(escapeJsonString(rec.getCorreo())).append("\"");
-                    // No incluir la contraseña aquí por seguridad
+                    // NO incluir la contraseña aquí por seguridad, el campo de contraseña en el modal de edición
+                    // debe ser para "nueva contraseña" y se maneja por separado si se desea cambiar.
                     jsonResponse.append("}");
                 } else {
                     response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    response.setContentType("application/json");
                     response.getWriter().write("{\"error\": \"" + escapeJsonString("Recepcionista no encontrado con ID: " + id) + "\"}");
                     return;
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
                 response.getWriter().write("{\"error\": \"" + escapeJsonString("Tipo de empleado no válido.") + "\"}");
                 return;
             }
@@ -264,7 +265,6 @@ public class AdminEmpleadoServlet extends HttpServlet {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al obtener datos JSON del empleado (ID: " + id + ", Tipo: " + tipo + "): " + e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"" + escapeJsonString("Error interno del servidor al obtener datos del empleado: " + e.getMessage()) + "\"}");
         }
     }
@@ -272,16 +272,19 @@ public class AdminEmpleadoServlet extends HttpServlet {
     private void mostrarFormularioNuevo(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("accion", "agregar");
-        request.setAttribute("tipoEmpleado", request.getParameter("tipo"));
+        request.setAttribute("tipoEmpleado", request.getParameter("tipo")); // Recibe 'veterinario' o 'recepcionista'
+        // Forward a la JSP que contiene el formulario o el modal para agregar
+        // Si tu modal está en ListadoEmpleados.jsp y se activa por JS, este forward no es estrictamente necesario,
+        // pero es útil si tienes una JSP dedicada para el formulario.
         request.getRequestDispatcher("/VistasWeb/VistasAdmin/FormularioEmpleado.jsp").forward(request, response);
     }
 
     private void agregarEmpleado(HttpServletRequest request, HttpServletResponse response, String tipoEmpleado)
             throws ServletException, IOException {
 
-        boolean exito = false;
         String mensaje = "";
         String error = "";
+        String activeTab = request.getParameter("currentTab"); // Para redirigir a la pestaña correcta
 
         try {
             if ("veterinario".equals(tipoEmpleado)) {
@@ -293,7 +296,7 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 vet.setEspecialidad(request.getParameter("especialidad"));
 
                 VeterinarioDAO dao = new VeterinarioDAO();
-                exito = dao.agregarVeterinario(vet);
+                boolean exito = dao.agregarVeterinario(vet);
 
                 if (exito) {
                     mensaje = "Veterinario agregado exitosamente.";
@@ -310,52 +313,61 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 rec.setCorreo(request.getParameter("correo"));
 
                 String contrasenaPlana = request.getParameter("contrasena");
-                // **** IMPORTANTE: HASHEAR LA CONTRASEÑA ANTES DE ENVIARLA AL DAO ****
-                // Si usas BCrypt, sería algo como:
-                // String hashedPassword = BCrypt.hashpw(contrasenaPlana, BCrypt.gensalt());
-                // rec.setContrasena(hashedPassword);
-                // Por ahora, se envía en texto plano (¡CAMBIAR ESTO!).
-                rec.setContrasena(contrasenaPlana); // ¡ADVERTENCIA DE SEGURIDAD!
+                // *** ATENCIÓN: Contraseña en texto plano para este ejemplo. ¡INSEGURO! ***
+                if (contrasenaPlana != null && !contrasenaPlana.isEmpty()) {
+                    rec.setContrasena(contrasenaPlana); // Guarda la contraseña tal cual
+                } else {
+                    error = "La contraseña no puede estar vacía para un nuevo recepcionista.";
+                    LOGGER.log(Level.WARNING, "Intento de agregar recepcionista sin contraseña.");
+                    request.getSession().setAttribute("errorFlash", error);
+                    response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
+                    return;
+                }
 
                 RecepcionistaDAO dao = new RecepcionistaDAO();
-                exito = dao.agregarRecepcionista(rec);
+                boolean exito = dao.agregarRecepcionista(rec);
 
                 if (exito) {
                     mensaje = "Recepcionista agregado exitosamente.";
                 } else {
-                    error = "No se pudo agregar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.";
-                    LOGGER.log(Level.WARNING, "Fallo al agregar recepcionista: " + rec.getDni() + " / " + rec.getCorreo());
+                    error = "No se pudo agregar el recepcionista. Verifique los datos, DNI o Correo ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al agregar recepcionista: " + rec.getDni());
                 }
             } else {
                 error = "Tipo de empleado no válido para agregar.";
             }
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error inesperado al agregar empleado (" + tipoEmpleado + "): " + e.getMessage(), e);
             error = "Error interno del servidor al agregar empleado: " + e.getMessage();
         }
 
+        // Usar patrón Post-Redirect-Get (PRG) para evitar doble envío y problemas de recarga
+        HttpSession session = request.getSession();
         if (!mensaje.isEmpty()) {
-            request.setAttribute("mensaje", mensaje);
+            session.setAttribute("mensajeFlash", mensaje);
         }
         if (!error.isEmpty()) {
-            request.setAttribute("error", error);
+            session.setAttribute("errorFlash", error);
         }
-        listarEmpleados(request, response);
+        response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
     }
 
     private void actualizarEmpleado(HttpServletRequest request, HttpServletResponse response, String tipoEmpleado)
             throws ServletException, IOException {
 
-        boolean exito = false;
         String mensaje = "";
         String error = "";
         int id = 0;
+        String activeTab = request.getParameter("currentTab");
 
         try {
             id = Integer.parseInt(request.getParameter("idEmpleado"));
         } catch (NumberFormatException e) {
             LOGGER.log(Level.WARNING, "ID inválido para actualización: " + request.getParameter("idEmpleado"), e);
-            manejarError(request, response, "ID de empleado inválido para actualización.");
+            error = "ID de empleado inválido para actualización. Recargue la página e intente de nuevo.";
+            request.getSession().setAttribute("errorFlash", error);
+            response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
             return;
         }
 
@@ -370,7 +382,7 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 vet.setEspecialidad(request.getParameter("especialidad"));
 
                 VeterinarioDAO dao = new VeterinarioDAO();
-                exito = dao.actualizarVeterinario(vet);
+                boolean exito = dao.actualizarVeterinario(vet);
 
                 if (exito) {
                     mensaje = "Veterinario actualizado exitosamente.";
@@ -388,24 +400,29 @@ public class AdminEmpleadoServlet extends HttpServlet {
                 rec.setCorreo(request.getParameter("correo"));
 
                 RecepcionistaDAO dao = new RecepcionistaDAO();
-                exito = dao.actualizarRecepcionista(rec);
+                boolean exitoPrincipal = dao.actualizarRecepcionista(rec); // Actualiza los datos principales
 
-                String nuevaContrasenaPlana = request.getParameter("contrasena");
+                String nuevaContrasenaPlana = request.getParameter("contrasena"); // Campo de contraseña puede estar vacío
+                boolean contrasenaActualizada = true; // Asumir true si no hay nueva contraseña
+                // *** ATENCIÓN: Contraseña en texto plano para este ejemplo. ¡INSEGURO! ***
                 if (nuevaContrasenaPlana != null && !nuevaContrasenaPlana.trim().isEmpty()) {
-                    boolean contrasenaActualizada = dao.actualizarContrasenaRecepcionista(id, nuevaContrasenaPlana);
-                    if (contrasenaActualizada) {
-                        mensaje += " Contraseña actualizada.";
-                    } else {
-                        error += " No se pudo actualizar la contraseña.";
-                        LOGGER.log(Level.WARNING, "Fallo al actualizar contraseña de recepcionista ID: " + id);
-                    }
+                    contrasenaActualizada = dao.actualizarContrasenaRecepcionista(id, nuevaContrasenaPlana); // Pasa la contraseña tal cual
                 }
 
-                if (exito || (nuevaContrasenaPlana != null && !nuevaContrasenaPlana.trim().isEmpty() && exito)) {
-                    mensaje = (mensaje.isEmpty() ? "" : mensaje + " ") + "Recepcionista actualizado exitosamente.";
-                } else {
-                    error = (error.isEmpty() ? "" : error + " ") + "No se pudo actualizar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.";
-                    LOGGER.log(Level.WARNING, "Fallo al actualizar recepcionista ID: " + id);
+                if (exitoPrincipal && contrasenaActualizada) {
+                    mensaje = "Recepcionista actualizado exitosamente.";
+                    if (nuevaContrasenaPlana != null && !nuevaContrasenaPlana.trim().isEmpty()) {
+                        mensaje += " Contraseña actualizada.";
+                    }
+                } else if (!exitoPrincipal) {
+                    error = "No se pudo actualizar el recepcionista. Verifique los datos o si el DNI/Correo ya existe.";
+                    LOGGER.log(Level.WARNING, "Fallo al actualizar datos principales de recepcionista ID: " + id);
+                } else if (!contrasenaActualizada) {
+                    error = "No se pudo actualizar la contraseña del recepcionista.";
+                    LOGGER.log(Level.WARNING, "Fallo al actualizar contraseña de recepcionista ID: " + id);
+                } else { // Caso en que exitoPrincipal es true, pero contrasenaActualizada es false, y error ya tiene mensaje
+                    mensaje = "Recepcionista actualizado exitosamente, pero la contraseña no se pudo actualizar.";
+                    LOGGER.log(Level.WARNING, "Fallo al actualizar contraseña de recepcionista ID: " + id + " pero datos principales actualizados.");
                 }
 
             } else {
@@ -416,35 +433,39 @@ public class AdminEmpleadoServlet extends HttpServlet {
             error = "Error interno del servidor al actualizar empleado: " + e.getMessage();
         }
 
+        // Usar patrón Post-Redirect-Get (PRG)
+        HttpSession session = request.getSession();
         if (!mensaje.isEmpty()) {
-            request.setAttribute("mensaje", mensaje);
+            session.setAttribute("mensajeFlash", mensaje);
         }
         if (!error.isEmpty()) {
-            request.setAttribute("error", error);
+            session.setAttribute("errorFlash", error);
         }
-        listarEmpleados(request, response);
+        response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
     }
 
     private void eliminarEmpleado(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String tipo = request.getParameter("tipo");
+        String tipo = request.getParameter("tipoEmpleado");
         int id = 0;
+        String activeTab = request.getParameter("currentTab");
+
+        String mensajeRespuesta = "";
+        String errorRespuesta = "";
+
         try {
-            id = Integer.parseInt(request.getParameter("id"));
+            id = Integer.parseInt(request.getParameter("idEmpleado"));
         } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "ID inválido para eliminación: " + request.getParameter("id"), e);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("text/plain");
-            response.getWriter().write("ID de empleado inválido.");
+            LOGGER.log(Level.WARNING, "ID inválido para eliminación: " + request.getParameter("idEmpleado"), e);
+            errorRespuesta = "ID de empleado inválido para eliminación. Recargue la página e intente de nuevo.";
+            request.getSession().setAttribute("errorFlash", errorRespuesta);
+            response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
             return;
         }
 
-        boolean exito = false;
-        String mensajeRespuesta = "";
-        int statusCode = HttpServletResponse.SC_OK;
-
         try {
+            boolean exito = false;
             if ("veterinario".equals(tipo)) {
                 VeterinarioDAO dao = new VeterinarioDAO();
                 exito = dao.eliminarVeterinario(id);
@@ -452,8 +473,7 @@ public class AdminEmpleadoServlet extends HttpServlet {
                     mensajeRespuesta = "Veterinario eliminado exitosamente.";
                     LOGGER.log(Level.INFO, "Veterinario ID " + id + " eliminado exitosamente.");
                 } else {
-                    mensajeRespuesta = "No se pudo eliminar el veterinario. Puede que tenga registros asociados (ej. citas).";
-                    statusCode = HttpServletResponse.SC_CONFLICT;
+                    errorRespuesta = "No se pudo eliminar el veterinario. Puede que tenga registros asociados (ej. citas).";
                     LOGGER.log(Level.WARNING, "Fallo al eliminar veterinario ID: " + id + ". Posiblemente por FK.");
                 }
             } else if ("recepcionista".equals(tipo)) {
@@ -463,31 +483,27 @@ public class AdminEmpleadoServlet extends HttpServlet {
                     mensajeRespuesta = "Recepcionista eliminado exitosamente.";
                     LOGGER.log(Level.INFO, "Recepcionista ID " + id + " eliminado exitosamente.");
                 } else {
-                    mensajeRespuesta = "No se pudo eliminar el recepcionista. Puede que tenga registros asociados (ej. citas, ventas).";
-                    statusCode = HttpServletResponse.SC_CONFLICT;
+                    errorRespuesta = "No se pudo eliminar el recepcionista. Puede que tenga registros asociados (ej. citas, ventas).";
                     LOGGER.log(Level.WARNING, "Fallo al eliminar recepcionista ID: " + id + ". Posiblemente por FK.");
                 }
             } else {
-                mensajeRespuesta = "Tipo de empleado no válido para eliminar.";
-                statusCode = HttpServletResponse.SC_BAD_REQUEST;
+                errorRespuesta = "Tipo de empleado no válido para eliminar.";
                 LOGGER.log(Level.WARNING, "Intento de eliminar con tipo de empleado no válido: " + tipo);
             }
 
-            response.setStatus(statusCode);
-            response.setContentType("text/plain");
-            response.getWriter().write(mensajeRespuesta);
-
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error inesperado al eliminar empleado (" + tipo + ", ID: " + id + "): " + e.getMessage(), e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.setContentType("text/plain");
-            response.getWriter().write("Error interno del servidor al eliminar empleado: " + e.getMessage());
+            errorRespuesta = "Error interno del servidor al eliminar empleado: " + e.getMessage();
+        } finally {
+            // Usar patrón Post-Redirect-Get (PRG)
+            HttpSession session = request.getSession();
+            if (!mensajeRespuesta.isEmpty()) {
+                session.setAttribute("mensajeFlash", mensajeRespuesta);
+            }
+            if (!errorRespuesta.isEmpty()) {
+                session.setAttribute("errorFlash", errorRespuesta);
+            }
+            response.sendRedirect(request.getContextPath() + "/AdminEmpleadoServlet?accion=listar&currentTab=" + activeTab);
         }
-    }
-
-    private void manejarError(HttpServletRequest request, HttpServletResponse response, String mensaje)
-            throws ServletException, IOException {
-        request.setAttribute("error", mensaje);
-        request.getRequestDispatcher("/error.jsp").forward(request, response);
     }
 }
