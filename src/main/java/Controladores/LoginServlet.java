@@ -1,4 +1,4 @@
-package Controladores;
+package Controladores; // Asegúrate de que el nombre de tu paquete sea este
 
 import Modelo.Administrador;
 import Modelo.Recepcionista;
@@ -31,7 +31,7 @@ public class LoginServlet extends HttpServlet {
         String rol = request.getParameter("rol");
 
         HttpSession session = request.getSession();
-        String jsonResponseString = ""; // Aquí construiremos la cadena JSON
+        String jsonResponseString = ""; 
 
         try {
             switch (rol) {
@@ -52,7 +52,7 @@ public class LoginServlet extends HttpServlet {
                     Recepcionista recepcionista = recepDAO.validarRecepcionista(correo, contrasena);
                     if (recepcionista != null) {
                         session.setAttribute("recepcionista", recepcionista);
-                        session.setAttribute("idRecepcionista", recepcionista.getIdRecepcionista());  // 🔷 clave para tus ventas
+                        session.setAttribute("idRecepcionista", recepcionista.getIdRecepcionista());
                         String redirectUrl = request.getContextPath() + "/ClienteRServlet";
                         jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
                     } else {
@@ -61,10 +61,12 @@ public class LoginServlet extends HttpServlet {
                     break;
 
                 case "Cliente":
-                    UsuarioClienteDAO clienteDAO = new UsuarioClienteDAO();
-                    UsuarioCliente cliente = clienteDAO.validarUsuario(correo, contrasena);
+                    UsuarioClienteDAO usuarioClienteDAO = new UsuarioClienteDAO(); // Renombrado a minusculas por convencion
+                    UsuarioCliente cliente = usuarioClienteDAO.validarUsuario(correo, contrasena);
                     if (cliente != null) {
                         session.setAttribute("usuario", cliente);
+                        // ¡LA LÍNEA QUE FALTABA!
+                        session.setAttribute("idUsuario", cliente.getIdUsuario()); 
                         String redirectUrl = request.getContextPath() + "/VistasWeb/VistasCliente/indexCliente.jsp";
                         jsonResponseString = "{\"success\": true, \"redirect\": \"" + redirectUrl + "\"}";
                     } else {
