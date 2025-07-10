@@ -1,17 +1,17 @@
-package ModeloDAO; // CORREGIDO: El paquete debe ser 'DAO'
+package ModeloDAO;
 
 import Modelo.Conexion;
 import Modelo.Cita;
-import Modelo.Cliente; // Necesario para el método listarClientesParaDropdown
-import static Modelo.Conexion.getConnection;
-import Modelo.Veterinario; // Necesario para el método listarVeterinariosParaDropdown
+import Modelo.Cliente;
+import static Modelo.Conexion.getConnection; // Importar correctamente si getConnection es estático de Modelo.Conexion
+import Modelo.Veterinario;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Date; // Usando java.sql.Date
-import java.sql.Time; // Usando java.sql.Time
+import java.sql.Date;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -54,14 +54,14 @@ public class CitaDAO {
     // Método para listar todas las Citas con detalles de cliente y veterinario
     public List<Cita> listarCitas() {
         List<Cita> lista = new ArrayList<>();
-        // Consulta SQL con JOINs para obtener nombres de cliente y veterinario, y la especialidad
-        // Asegúrate de que los alias (AS NombreCliente, AS DniCliente, etc.) coincidan con lo que tu objeto Cita espera en sus setters (setNombreCliente, setDniCliente)
+        // CAMBIO CLAVE AQUÍ: Añadir WHERE c.estado != 'Completada'
         String sql = "SELECT c.idCita, c.idCliente, c.idVeterinario, c.fecha, c.hora, c.motivo, c.estado, " +
-                     "cl.Nombre AS NombreCliente, cl.Apellido AS ApellidoCliente, cl.DNI AS DniCliente, " + // Asume cl.DNI es la columna en la tabla Cliente
+                     "cl.Nombre AS NombreCliente, cl.Apellido AS ApellidoCliente, cl.DNI AS DniCliente, " +
                      "v.V_Nombre AS NombreVeterinario, v.V_Apellido AS ApellidoVeterinario, v.V_Especialidad " +
                      "FROM Citas c " +
                      "JOIN Cliente cl ON c.idCliente = cl.IdCliente " +
                      "JOIN Veterinario v ON c.idVeterinario = v.IdVeterinario " +
+                     "WHERE c.estado != 'Completada' " + // <-- Filtra las citas completadas
                      "ORDER BY c.fecha DESC, c.hora DESC";
 
         try {
@@ -93,18 +93,19 @@ public class CitaDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al listar citas: " + e.getMessage(), e);
-            e.printStackTrace(); // Agregado para mejor depuración
+            e.printStackTrace();
         } finally {
             closeResources();
         }
         return lista;
     }
- 
+
     // Método para obtener una Cita por ID con detalles de cliente y veterinario
+    // NO SE AGREGA FILTRO DE ESTADO AQUÍ, porque podríamos querer ver una cita completada por su ID
     public Cita obtenerCitaPorId(int id) {
         Cita cita = null;
         String sql = "SELECT c.idCita, c.idCliente, c.idVeterinario, c.fecha, c.hora, c.motivo, c.estado, " +
-                     "cl.Nombre AS NombreCliente, cl.Apellido AS ApellidoCliente, cl.DNI AS DniCliente, " + // Asume cl.DNI es la columna en la tabla Cliente
+                     "cl.Nombre AS NombreCliente, cl.Apellido AS ApellidoCliente, cl.DNI AS DniCliente, " +
                      "v.V_Nombre AS NombreVeterinario, v.V_Apellido AS ApellidoVeterinario, v.V_Especialidad " +
                      "FROM Citas c " +
                      "JOIN Cliente cl ON c.idCliente = cl.IdCliente " +
@@ -138,7 +139,7 @@ public class CitaDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al obtener cita por ID: " + e.getMessage(), e);
-            e.printStackTrace(); // Agregado para mejor depuración
+            e.printStackTrace();
         } finally {
             closeResources();
         }
@@ -166,7 +167,7 @@ public class CitaDAO {
             return rowsAffected > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al actualizar cita: " + e.getMessage(), e);
-            e.printStackTrace(); // Agregado para mejor depuración
+            e.printStackTrace();
             return false;
         } finally {
             closeResources();
@@ -174,42 +175,44 @@ public class CitaDAO {
     }
 
     // Método para eliminar una Cita con store procedure
-   public int eliminarCita(int id) {
-    String sql = "{CALL sp_eliminar_cita(?, ?)}";
-    CallableStatement cs = null;
+    public int eliminarCita(int id) {
+        String sql = "{CALL sp_eliminar_cita(?, ?)}"; // Llamada al SP
+        CallableStatement cs = null;
 
-    try {
-        con = Conexion.getConnection();
-        if (con == null) {
-            LOGGER.log(Level.SEVERE, "La conexión a la BD es nula. No se pudo eliminar la cita.");
-            return 0; // Código 0: error de conexión
-        }
-
-        cs = con.prepareCall(sql);
-        cs.setInt(1, id);
-        cs.registerOutParameter(2, java.sql.Types.INTEGER);
-
-        cs.execute();
-        int resultado = cs.getInt(2);
-        return resultado; // 1: éxito, -1: no existe
-
-    } catch (SQLException e) {
-        LOGGER.log(Level.SEVERE, "Error al eliminar cita mediante SP: " + e.getMessage(), e);
-        return -2; // Código -2: error SQL
-    } finally {
         try {
-            if (cs != null) cs.close();
-            if (con != null) con.close();
+            con = Conexion.getConnection();
+            if (con == null) {
+                LOGGER.log(Level.SEVERE, "La conexión a la BD es nula. No se pudo eliminar la cita.");
+                return 0; // Código 0: error de conexión
+            }
+
+            cs = con.prepareCall(sql);
+            cs.setInt(1, id);
+            cs.registerOutParameter(2, java.sql.Types.INTEGER);
+
+            cs.execute();
+            int resultado = cs.getInt(2);
+            return resultado; // 1: éxito, -1: no existe
+
         } catch (SQLException e) {
-            LOGGER.log(Level.WARNING, "Error al cerrar recursos: " + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "Error al eliminar cita mediante SP: " + e.getMessage(), e);
+            return -2; // Código -2: error SQL
+        } finally {
+            try {
+                if (cs != null) cs.close();
+                // con se cierra en closeResources() si no se usa un pool.
+                // Si getConnection() ya te devuelve una conexión del pool, no necesitas con.close() aquí.
+                // Si no, asegúrate de que closeResources() cierre 'con'.
+                closeResources();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Error al cerrar recursos del SP de eliminación: " + e.getMessage(), e);
+            }
         }
     }
-}
 
     // --- Métodos para cargar listas de Clientes y Veterinarios para los dropdowns ---
     public List<Cliente> listarClientesParaDropdown() {
         List<Cliente> lista = new ArrayList<>();
-        // Asegúrate de que los nombres de las columnas en tu DB son exactos: IdCliente, Nombre, Apellido, DNI
         String sql = "SELECT IdCliente, Nombre, Apellido, DNI FROM Cliente ORDER BY Apellido, Nombre";
         try {
             con = Conexion.getConnection();
@@ -222,14 +225,14 @@ public class CitaDAO {
             while (rs.next()) {
                 Cliente cliente = new Cliente();
                 cliente.setIdCliente(rs.getInt("IdCliente"));
-                cliente.setNombre(rs.getString("Nombre")); // Asume que Modelo.Cliente tiene setNombre
-                cliente.setApellido(rs.getString("Apellido")); // Asume que Modelo.Cliente tiene setApellido
-                cliente.setDni(rs.getString("DNI")); // Asume que Modelo.Cliente tiene setDni
+                cliente.setNombre(rs.getString("Nombre"));
+                cliente.setApellido(rs.getString("Apellido"));
+                cliente.setDni(rs.getString("DNI"));
                 lista.add(cliente);
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al listar clientes para dropdown: " + e.getMessage(), e);
-            e.printStackTrace(); // Agregado para mejor depuración
+            e.printStackTrace();
         } finally {
             closeResources();
         }
@@ -238,11 +241,10 @@ public class CitaDAO {
 
     public List<Veterinario> listarVeterinariosParaDropdown() {
         List<Veterinario> lista = new ArrayList<>();
-        // Asegúrate de que los nombres de las columnas en tu DB son exactos: IdVeterinario, V_Nombre, V_Apellido, V_Especialidad
         String sql = "SELECT IdVeterinario, V_Nombre, V_Apellido, V_Especialidad FROM Veterinario ORDER BY V_Apellido, V_Nombre";
         try {
             con = Conexion.getConnection();
-            if (con == null) { // Agregar verificación de conexión nula
+            if (con == null) {
                 LOGGER.log(Level.SEVERE, "La conexión a la BD es nula. No se pudieron listar veterinarios para dropdown.");
                 return lista;
             }
@@ -251,7 +253,6 @@ public class CitaDAO {
             while (rs.next()) {
                 Veterinario vet = new Veterinario();
                 vet.setIdVeterinario(rs.getInt("IdVeterinario"));
-                // ¡¡¡CORRECCIÓN AQUÍ!!! Usar los setters que coincidan con las propiedades del modelo (nombre, apellido, especialidad)
                 vet.setNombre(rs.getString("V_Nombre"));
                 vet.setApellido(rs.getString("V_Apellido"));
                 vet.setEspecialidad(rs.getString("V_Especialidad"));
@@ -259,7 +260,7 @@ public class CitaDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error al listar veterinarios para dropdown: " + e.getMessage(), e);
-            e.printStackTrace(); // Agregado para mejor depuración
+            e.printStackTrace();
         } finally {
             closeResources();
         }
@@ -267,69 +268,64 @@ public class CitaDAO {
     }
 
     // Método auxiliar para cerrar recursos
+    // NOTA: Si Conexion.getConnection() usa un pool de conexiones, con.close() puede devolver
+    // la conexión al pool en lugar de cerrarla físicamente. Si no usa pool, cerrará la conexión.
     private void closeResources() {
         try {
             if (rs != null) rs.close();
             if (ps != null) ps.close();
-            if (con != null) con.close(); // Cierra la conexión si no es parte de un pool gestionado externamente
+            if (con != null) con.close();
         } catch (SQLException e) {
             LOGGER.log(Level.WARNING, "Error al cerrar recursos de la BD: " + e.getMessage(), e);
         }
     }
 
+    // Método auxiliar que parece no estar en uso o es un remanente
     private Cliente mapearCita(ResultSet rs) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    // Clase interna que parece no estar en uso o es un remanente
     private static class conexion {
-
         private static PreparedStatement prepareStatement(String sql) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+            throw new UnsupportedOperationException("Not supported yet.");
         }
-
-        public conexion() {
-        }
+        public conexion() { }
     }
-    
-    
-    
+
     //Buscar cita con store procedure
     public List<Cita> buscarCitas(String busqueda) {
-    List<Cita> citas = new ArrayList<>();
-    String sql = "{CALL sp_buscar_citas(?)}"; // Llamada al SP
+        List<Cita> citas = new ArrayList<>();
+        String sql = "{CALL sp_buscar_citas(?)}"; // Llamada al SP
 
-    try (Connection conn = getConnection();
-         CallableStatement stmt = conn.prepareCall(sql)) {
+        try (Connection conn = Conexion.getConnection(); // Usar Conexion.getConnection() consistente
+             CallableStatement stmt = conn.prepareCall(sql)) {
 
-        stmt.setString(1, busqueda); // Enviamos el parámetro
+            stmt.setString(1, busqueda);
 
-        try (ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                Cita cita = new Cita();
-                cita.setIdCita(rs.getInt("idCita"));
-                cita.setIdCliente(rs.getInt("idCliente"));
-                cita.setIdVeterinario(rs.getInt("idVeterinario"));
-                cita.setFecha(rs.getDate("fecha"));
-                cita.setHora(rs.getTime("hora"));
-                cita.setMotivo(rs.getString("motivo"));
-                cita.setEstado(rs.getString("estado"));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Cita cita = new Cita();
+                    cita.setIdCita(rs.getInt("idCita"));
+                    cita.setIdCliente(rs.getInt("idCliente"));
+                    cita.setIdVeterinario(rs.getInt("idVeterinario"));
+                    cita.setFecha(rs.getDate("fecha"));
+                    cita.setHora(rs.getTime("hora"));
+                    cita.setMotivo(rs.getString("motivo"));
+                    cita.setEstado(rs.getString("estado"));
 
-                // Datos adicionales del JOIN
-                cita.setNombreCliente(rs.getString("nombre_cliente"));
-                cita.setApellidoCliente(rs.getString("apellido_cliente"));
-                cita.setNombreVeterinario(rs.getString("nombre_veterinario"));
-                cita.setApellidoVeterinario(rs.getString("apellido_veterinario"));
-                cita.setEspecialidadVeterinario(rs.getString("especialidad_veterinario"));
+                    cita.setNombreCliente(rs.getString("nombre_cliente"));
+                    cita.setApellidoCliente(rs.getString("apellido_cliente"));
+                    cita.setNombreVeterinario(rs.getString("nombre_veterinario"));
+                    cita.setApellidoVeterinario(rs.getString("apellido_veterinario"));
+                    cita.setEspecialidadVeterinario(rs.getString("especialidad_veterinario"));
 
-                citas.add(cita);
+                    citas.add(cita);
+                }
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error al buscar citas con stored procedure", e);
         }
-    } catch (SQLException e) {
-        LOGGER.log(Level.SEVERE, "Error al buscar citas con stored procedure", e);
+        return citas;
     }
-
-    return citas;
-}
-
-      
 }

@@ -9,7 +9,7 @@
 <%@ page import="java.sql.Date" %>
 <%@ page import="java.sql.Time" %>
 
-<%    List<Cita> listaCitas = (List<Cita>) request.getAttribute("listaCitas");
+<%  List<Cita> listaCitas = (List<Cita>) request.getAttribute("listaCitas");
     Cita citaSel = (Cita) request.getAttribute("citaSeleccionada");
     String mensaje = (String) request.getAttribute("mensaje");
     String tipoMensaje = (String) request.getAttribute("tipoMensaje");
@@ -269,8 +269,17 @@
                             <td><%= c.getMotivo()%></td>
                             <td><span class="<%= claseEstado%>"><%= c.getEstado()%></span></td>
                             <td>
-                                <a href="${pageContext.request.contextPath}/CitaServlet?accion=editar&id=<%= c.getIdCita()%>" 
-                                   class="btn btn-editar">Editar</a>
+                                <button class="btn btn-editar"
+                                        onclick="abrirModalEditar(
+                                            '<%= c.getIdCita()%>',
+                                            '<%= c.getIdCliente()%>',
+                                            '<%= c.getIdVeterinario()%>',
+                                            '<%= dateFormatter.format(c.getFecha())%>',
+                                            '<%= timeFormatter.format(c.getHora())%>',
+                                            '<%= c.getMotivo()%>',
+                                            '<%= c.getEstado()%>'
+                                        )">Editar</button>
+
                                 <a href="${pageContext.request.contextPath}/CitaServlet?accion=eliminar&id=<%= c.getIdCita()%>" 
                                    class="btn btn-eliminar" onclick="return confirm('¿Está seguro de eliminar esta cita?')">Eliminar</a>
                             </td>
@@ -289,13 +298,11 @@
             <div id="modalAgregarCita" class="modal">
                 <div class="modal-content">
                     <span class="close" onclick="cerrarModal('modalAgregarCita')">&times;</span>
-                    <h2><%= citaSel == null ? "Agregar Nueva Cita" : "Editar Cita"%></h2>
+                    <h2>Agregar Nueva Cita</h2> <%-- Mantengo solo "Agregar Nueva Cita" aquí para evitar confusión con el modal de editar --%>
 
                     <form action="${pageContext.request.contextPath}/CitaServlet" method="post">
-                        <input type="hidden" name="accion" value="<%= citaSel == null ? "guardar" : "actualizar"%>">
-                        <% if (citaSel != null) {%>
-                        <input type="hidden" name="idCita" value="<%= citaSel.getIdCita()%>">
-                        <% } %>
+                        <input type="hidden" name="accion" value="guardar"> <%-- Siempre "guardar" para este modal --%>
+                        
 
                         <div class="form-group">
                             <label for="idCliente">Cliente:</label>
@@ -339,16 +346,10 @@
 
                         <div class="form-group">
                             <label for="motivo">Motivo:</label>
-                            <select name="motivo" id="motivo" required class="form-control">
-                                <option value="">Seleccione un motivo</option>
-                                <option value="Consulta general" <%= citaSel != null && "Consulta general".equals(citaSel.getMotivo()) ? "selected" : ""%>>Consulta general</option>
-                                <option value="Vacunación" <%= citaSel != null && "Vacunación".equals(citaSel.getMotivo()) ? "selected" : ""%>>Vacunación</option>
-                                <option value="Cirugía" <%= citaSel != null && "Cirugía".equals(citaSel.getMotivo()) ? "selected" : ""%>>Cirugía</option>
-                                <option value="Desparasitación" <%= citaSel != null && "Desparasitación".equals(citaSel.getMotivo()) ? "selected" : ""%>>Desparasitación</option>
-                                <option value="Peluquería" <%= citaSel != null && "Peluquería".equals(citaSel.getMotivo()) ? "selected" : ""%>>Peluquería</option>
-                                <option value="Chequeo" <%= citaSel != null && "Chequeo".equals(citaSel.getMotivo()) ? "selected" : ""%>>Chequeo</option>
-                                <option value="Otro" <%= citaSel != null && "Otro".equals(citaSel.getMotivo()) ? "selected" : ""%>>Otro</option>
-                            </select>
+                            <%-- CAMBIO AQUÍ: input type="text" en lugar de select --%>
+                            <input type="text" name="motivo" id="motivo" 
+                                   value="<%= citaSel != null ? citaSel.getMotivo() : ""%>" 
+                                   required class="form-control" placeholder="Ej: Consulta de rutina, Vacunación, etc.">
                         </div>
 
                         <div class="form-group">
@@ -362,76 +363,155 @@
                         </div>
 
                         <div class="modal-actions">
-                            <% if (citaSel != null) {%>
-                            <button type="button" class="btn-eliminar" onclick="confirmarEliminar(<%= citaSel.getIdCita()%>)">Eliminar</button>
-                            <% }%>
                             <div>
                                 <button type="button" class="btn-cerrar" onclick="cerrarModal('modalAgregarCita')">Cancelar</button>
-                                <button type="submit" class="btn-guardar"><%= citaSel == null ? "Guardar" : "Actualizar"%></button>
+                                <button type="submit" class="btn-guardar">Guardar</button>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
+            
+            <div id="modalEditarCita" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="cerrarModal('modalEditarCita')">&times;</span>
+                    <h2>Editar Cita</h2>
+
+                    <form action="${pageContext.request.contextPath}/CitaServlet" method="post">
+                        <input type="hidden" name="accion" value="actualizar">
+                        <input type="hidden" name="idCita" id="editar_idCita">
+
+                        <div class="form-group">
+                            <label for="editar_idCliente">Cliente:</label>
+                            <select name="idCliente" id="editar_idCliente" required class="form-control">
+                                <option value="">Seleccione un cliente</option>
+                                <% for (Cliente cli : listaClientes) {%>
+                                <option value="<%= cli.getIdCliente()%>">
+                                    <%= cli.getNombre()%> <%= cli.getApellido()%> - <%= cli.getDni()%>
+                                </option>
+                                <% } %>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editar_idVeterinario">Veterinario:</label>
+                            <select name="idVeterinario" id="editar_idVeterinario" required class="form-control">
+                                <option value="">Seleccione un veterinario</option>
+                                <% for (Veterinario vet : listaVeterinarios) {%>
+                                <option value="<%= vet.getIdVeterinario()%>">
+                                    Dr(a). <%= vet.getNombre()%> <%= vet.getApellido()%> - <%= vet.getEspecialidad()%>
+                                </option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editar_fecha">Fecha:</label>
+                            <input type="date" name="fecha" id="editar_fecha" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editar_hora">Hora:</label>
+                            <input type="time" name="hora" id="editar_hora" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="editar_motivo">Motivo:</label>
+                            <%-- CAMBIO AQUÍ: input type="text" en lugar de select para el modal de edición --%>
+                            <input type="text" name="motivo" id="editar_motivo" required class="form-control" placeholder="Ej: Consulta de rutina, Vacunación, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="editar_estado">Estado:</label>
+                            <select name="estado" id="editar_estado" required class="form-control">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Confirmada">Confirmada</option>
+                                <option value="Cancelada">Cancelada</option>
+                                <option value="Completada">Completada</option>
+                            </select>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-cerrar" onclick="cerrarModal('modalEditarCita')">Cancelar</button>
+                            <button type="submit" class="btn-guardar">Actualizar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
         </main>
         <button id="modoNocheBtn" class="modo-noche-flotante" aria-label="Cambiar a modo noche">🌙</button>
         <script src="<%= request.getContextPath()%>/Js/JsAdmin/ModoNoche-Sidebar.js"></script>
         <script>
-                                    // Mostrar modal si hay una cita seleccionada (para edición)
+            // Mostrar modal si hay una cita seleccionada (para edición) del modal agregar cita
             <% if (citaSel != null) { %>
-                                    document.addEventListener('DOMContentLoaded', function () {
-                                        abrirModal('modalAgregarCita');
-                                    });
+            document.addEventListener('DOMContentLoaded', function () {
+                abrirModal('modalAgregarCita');
+            });
             <% }%>
 
-                                    function abrirModal(modalId) {
-                                        const modal = document.getElementById(modalId);
-                                        if (modal) {
-                                            modal.style.display = 'block';
-                                        }
-                                    }
+            function abrirModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'block';
+                }
+            }
 
-                                    function cerrarModal(modalId) {
-                                        const modal = document.getElementById(modalId);
-                                        if (modal) {
-                                            modal.style.display = 'none';
-                                            // Redirigir para limpiar parámetros si es necesario
-                                            if (modalId === 'modalAgregarCita' && <%= citaSel != null%>) {
-                                                window.location.href = '${pageContext.request.contextPath}/CitaServlet';
-                                            }
-                                        }
-                                    }
+            function cerrarModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'none';
+                    // Redirigir para limpiar parámetros si es necesario al cerrar el modal de agregar
+                    if (modalId === 'modalAgregarCita' && <%= citaSel != null%>) {
+                        window.location.href = '${pageContext.request.contextPath}/CitaServlet';
+                    }
+                     // Opcional: Recargar la página o hacer una nueva solicitud AJAX para refrescar la tabla si el modal de edición se cierra.
+                     // Esto puede ser útil para asegurar que la tabla se actualice si el usuario cancela la edición.
+                    if (modalId === 'modalEditarCita') {
+                         window.location.href = '${pageContext.request.contextPath}/CitaServlet';
+                    }
+                }
+            }
 
-                                    function confirmarEliminar(idCita) {
-                                        if (confirm('¿Está seguro que desea eliminar esta cita?')) {
-                                            window.location.href = '${pageContext.request.contextPath}/CitaServlet?accion=eliminar&id=' + idCita;
-                                        }
-                                    }
+            function confirmarEliminar(idCita) {
+                if (confirm('¿Está seguro que desea eliminar esta cita?')) {
+                    window.location.href = '${pageContext.request.contextPath}/CitaServlet?accion=eliminar&id=' + idCita;
+                }
+            }
 
-                                    // Cierra el modal si se hace clic fuera de él
-                                    window.onclick = function (event) {
-                                        const modals = document.getElementsByClassName("modal");
-                                        for (let modal of modals) {
-                                            if (event.target == modal) {
-                                                modal.style.display = "none";
-                                                // Redirigir para limpiar parámetros si es necesario
-                                                if (modal.id === 'modalAgregarCita' && <%= citaSel != null%>) {
-                                                    window.location.href = '${pageContext.request.contextPath}/CitaServlet';
-                                                }
-                                            }
-                                        }
-                                    }
+            // Cierra el modal si se hace clic fuera de él
+            window.onclick = function (event) {
+                const modals = document.getElementsByClassName("modal");
+                for (let modal of modals) {
+                    if (event.target == modal) {
+                        modal.style.display = "none";
+                        // Redirigir para limpiar parámetros si es necesario
+                        if (modal.id === 'modalAgregarCita' && <%= citaSel != null%>) {
+                            window.location.href = '${pageContext.request.contextPath}/CitaServlet';
+                        }
+                    }
+                }
+            }
 
-                                    // Validación de fecha (no permitir fechas pasadas)
-                                    document.getElementById('fecha')?.addEventListener('change', function () {
-                                        const fechaInput = this.value;
-                                        const hoy = new Date().toISOString().split('T')[0];
+            // Validación de fecha (no permitir fechas pasadas)
+            document.getElementById('fecha')?.addEventListener('change', function () {
+                const fechaInput = this.value;
+                const hoy = new Date().toISOString().split('T')[0];
 
-                                        if (fechaInput < hoy) {
-                                            alert('No se pueden agendar citas en fechas pasadas');
-                                            this.value = hoy;
-                                        }
-                                    });
+                if (fechaInput < hoy) {
+                    alert('No se pueden agendar citas en fechas pasadas');
+                    this.value = hoy;
+                }
+            });
+
+            // Función para abrir el modal de edición y prellenar los campos
+            function abrirModalEditar(idCita, idCliente, idVeterinario, fecha, hora, motivo, estado) {
+                abrirModal('modalEditarCita');
+                document.getElementById('editar_idCita').value = idCita;
+                document.getElementById('editar_idCliente').value = idCliente;
+                document.getElementById('editar_idVeterinario').value = idVeterinario;
+                document.getElementById('editar_fecha').value = fecha;
+                document.getElementById('editar_hora').value = hora;
+                document.getElementById('editar_motivo').value = motivo; // Motivo ahora es un campo de texto
+                document.getElementById('editar_estado').value = estado;
+            }
         </script>
     </body>
 </html>

@@ -215,18 +215,10 @@
                             <label for="motivo" class="form-label">Motivo:</label>
                             <textarea class="form-control" id="motivo" name="motivo" rows="3" <%= "ver".equals(modo) ? "readonly" : ""%> required><%= cita.getMotivo()%></textarea>
                         </div>
-                        <div class="mb-3">
-                            <label for="estado" class="form-label">Estado:</label>
-                            <select class="form-select" id="estado" name="estado" <%= "ver".equals(modo) ? "disabled" : ""%> required>
-                                <option value="Pendiente" <%= "Pendiente".equals(cita.getEstado()) ? "selected" : ""%>>Pendiente</option>
-                                <option value="Confirmada" <%= "Confirmada".equals(cita.getEstado()) ? "selected" : ""%>>Confirmada</option>
-                                <option value="Completada" <%= "Completada".equals(cita.getEstado()) ? "selected" : ""%>>Completada</option>
-                                <option value="Cancelada" <%= "Cancelada".equals(cita.getEstado()) ? "selected" : ""%>>Cancelada</option>
-                            </select>
-                        </div>
-
+                        <div class="modal-actions">
                         <% if ("editar".equals(modo)) { %>
                         <button type="submit" class="btn btn-primary">Volver</button>
+                        <button type="submit" class="btn-guardar">Actualizar</button>
                         <% } %>
                         <a href="UsuarioCitaRecepServlet?accion=listarCitaUsuarios" class="btn btn-secondary">Volver a la Lista</a>
                     </form>
