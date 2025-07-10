@@ -186,15 +186,7 @@
                             <i class='bx bx-calendar-alt icon'></i><span class="text">Citas de Usuarios</span></a>
                     </li>
 
-                    <li class="nav-link">
-                        <a href="${pageContext.request.contextPath}/ProductoRecepServlet">
-                            <i class='bx bx-package icon'></i><span class="text">Productos</span></a>
-                    </li>
-
-                    <li class="nav-link">
-                        <a href="${pageContext.request.contextPath}/HistorialVentaServlet">
-                            <i class='bx bx-receipt icon'></i><span class="text">Historial de Ventas</span></a>
-                    </li>
+                    
 
                     <li class="nav-link">
                         <a href="<%= request.getContextPath()%>/LogoutServlet">
